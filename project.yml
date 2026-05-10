@@ -1,0 +1,58 @@
+name: IPTVApp
+options:
+  bundleIdPrefix: com.iptvapp
+  deploymentTarget:
+    iOS: "15.0"
+  generateEmptyDirectories: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+
+targets:
+  IPTVApp:
+    type: application
+    platform: iOS
+    sources:
+      - path: IPTVApp
+    settings:
+      base:
+        INFOPLIST_FILE: IPTVApp/Resources/Info.plist
+        PRODUCT_BUNDLE_IDENTIFIER: com.iptvapp.app
+        UILaunchStoryboardName: LaunchScreen
+        OTHER_LINKER_FLAGS: -ObjC
+    dependencies:
+      - package: SnapKit
+        product: SnapKit
+      - package: Kingfisher
+        product: Kingfisher
+      - package: GRDB
+        product: GRDB
+    preBuildScripts:
+      - name: "SwiftLint"
+        script: |
+          if which swiftlint > /dev/null; then
+            swiftlint
+          fi
+
+  IPTVAppTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: IPTVAppTests
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+    dependencies:
+      - target: IPTVApp
+
+packages:
+  SnapKit:
+    url: https://github.com/SnapKit/SnapKit.git
+    from: 5.7.0
+  Kingfisher:
+    url: https://github.com/onevcat/Kingfisher.git
+    from: 8.0.0
+  GRDB:
+    url: https://github.com/groue/GRDB.swift.git
+    from: 6.0.0
