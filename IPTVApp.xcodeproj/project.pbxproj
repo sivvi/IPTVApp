@@ -18,8 +18,10 @@
 		373E833729BEF66AB43F7B91 /* FavoritesViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F76D61A327B298555D3CA20 /* FavoritesViewModel.swift */; };
 		39BF4E17858F868CF693FCDF /* ChannelCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9985B3F1FE1EE16159EEEAEE /* ChannelCell.swift */; };
 		3ECB3ADEF68760E7936AB1DB /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = 718884283E37F155903F8999 /* GRDB */; };
+		3F662412944C9169A0384795 /* EPGTimelineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 220C99E2FAB1AF7E903042D2 /* EPGTimelineView.swift */; };
 		3FCE0E9F008149767A26FEBC /* NetworkMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = F58FE8E738B8BF87C57B4F47 /* NetworkMonitor.swift */; };
 		434AC66D4F5F1F658B547056 /* XMLTVParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B0CE47FB08547457C53B66C /* XMLTVParser.swift */; };
+		449DCD7A7BAEF4E0AFEA6D9F /* EPGNowPlayingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBBF05BAEB8FF390E2DF8A55 /* EPGNowPlayingView.swift */; };
 		496C66E3F89DFDD988356D6A /* Coordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 171F7C34DEF17AD6389DAA8B /* Coordinator.swift */; };
 		52D14C92D0C0707FD5D70C4B /* AppError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 791513EA4D9E113C69817694 /* AppError.swift */; };
 		597B40C4E533992F38D37689 /* PlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7554469A3B98E0A2494E9E25 /* PlayerView.swift */; };
@@ -27,10 +29,12 @@
 		6CAA9B185E0C00C81765D99C /* PlayerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F9D5C89B4E6E6AF0DD84C44 /* PlayerViewModel.swift */; };
 		6E8559E7370BF79AE1E5B065 /* PlayerState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9038714FB3115BBC5DCE945F /* PlayerState.swift */; };
 		7F3BDD8CCDAAF6255CDD7126 /* PlayerControlBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8BFA866E835912B25D7EA90 /* PlayerControlBar.swift */; };
+		7FEC42BCB5887DC2CBED4BC3 /* EPGViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81760E17EC6CC8062F236AC1 /* EPGViewModel.swift */; };
 		8759263399DEE814863CA36D /* ViewModelProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF85EC2A3CB2DB2B6274BB37 /* ViewModelProtocol.swift */; };
 		8CBEFD68036A7B876E20FA10 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56EA868A851ED00917B39331 /* SceneDelegate.swift */; };
 		8F3A4E79FB2B4AE2AB905E92 /* PlaylistDownloader.swift in Sources */ = {isa = PBXBuildFile; fileRef = C554AC027DF4194D3CA8AA91 /* PlaylistDownloader.swift */; };
 		9D3AE4F54A3C15E4EB40640A /* Program.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9569D6CB5CAF5CD4BCD4A860 /* Program.swift */; };
+		A18C618B8880E1979083921B /* EPGService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B9CA92843B5C6DCD6A9913B /* EPGService.swift */; };
 		A1CF52436C563A68457E314E /* M3UParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EA12BE205507368CDE12342 /* M3UParserTests.swift */; };
 		A1F68AC6D165E5EA222A3FC0 /* AVPlayerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1301C4D6D56F3FA0E882F274 /* AVPlayerService.swift */; };
 		A28C3A631BDC549D0BAD8DEC /* AppCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 591A2D788FB7FCB7A29DF49C /* AppCoordinator.swift */; };
@@ -40,6 +44,7 @@
 		BB487BED69EAD2DAE83A64CF /* PlayerError.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFF45B0F4094E3640AEAA111 /* PlayerError.swift */; };
 		BE742D499B7EC7B5854E9307 /* Kingfisher in Frameworks */ = {isa = PBXBuildFile; productRef = AD20C2075D3260AE0755A99D /* Kingfisher */; };
 		BF69DEFA8A4DF1850F9B1B95 /* EPGChannelGridViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB67C5A512DAD9B21C6A0A2E /* EPGChannelGridViewController.swift */; };
+		C0032234C08E8F24D6893A58 /* EPGChannelCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA356F3A0D15FC018B5FCC02 /* EPGChannelCell.swift */; };
 		C9FED0099F9E65D78B6C6CFC /* EPGData.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED278700E5A303038BBF207E /* EPGData.swift */; };
 		D311A17EF9968C80B7CE3E7D /* Channel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0592FE57F020C6AA8D95F12C /* Channel.swift */; };
 		D5E425DF4E6EDF375303A597 /* EPGChannel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9063CBFDB3C104227383C989 /* EPGChannel.swift */; };
@@ -73,6 +78,7 @@
 		16504F8A797AE8F33B4C820F /* BaseViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BaseViewController.swift; sourceTree = "<group>"; };
 		171F7C34DEF17AD6389DAA8B /* Coordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Coordinator.swift; sourceTree = "<group>"; };
 		21163450AA0D61FA977CFA76 /* PlaylistParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaylistParser.swift; sourceTree = "<group>"; };
+		220C99E2FAB1AF7E903042D2 /* EPGTimelineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EPGTimelineView.swift; sourceTree = "<group>"; };
 		2802EB9C788D59636D3A246D /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
 		3454810DA664A0165B00E261 /* AddPlaylistViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddPlaylistViewController.swift; sourceTree = "<group>"; };
 		386EB65120730107B88924DF /* DatabaseManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabaseManager.swift; sourceTree = "<group>"; };
@@ -86,12 +92,14 @@
 		56EA868A851ED00917B39331 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		591A2D788FB7FCB7A29DF49C /* AppCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppCoordinator.swift; sourceTree = "<group>"; };
 		5B0CE47FB08547457C53B66C /* XMLTVParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XMLTVParser.swift; sourceTree = "<group>"; };
+		5B9CA92843B5C6DCD6A9913B /* EPGService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EPGService.swift; sourceTree = "<group>"; };
 		5EA12BE205507368CDE12342 /* M3UParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = M3UParserTests.swift; sourceTree = "<group>"; };
 		5F5908523B5380728DB8B659 /* IPTVAppTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = IPTVAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		6F15CDBD61A33A30F1C4128B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		7554469A3B98E0A2494E9E25 /* PlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerView.swift; sourceTree = "<group>"; };
 		791513EA4D9E113C69817694 /* AppError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppError.swift; sourceTree = "<group>"; };
 		7DDBC57390037D291668362B /* PlayerViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerViewController.swift; sourceTree = "<group>"; };
+		81760E17EC6CC8062F236AC1 /* EPGViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EPGViewModel.swift; sourceTree = "<group>"; };
 		8771DD390EEEFB0448AEBC29 /* PlayerServiceProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerServiceProtocol.swift; sourceTree = "<group>"; };
 		88C3AC954F97044CBED3B034 /* Logger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Logger.swift; sourceTree = "<group>"; };
 		8DE1AF53317C8BCC8D908E99 /* DatabaseManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabaseManagerTests.swift; sourceTree = "<group>"; };
@@ -101,7 +109,9 @@
 		9985B3F1FE1EE16159EEEAEE /* ChannelCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChannelCell.swift; sourceTree = "<group>"; };
 		9F76D61A327B298555D3CA20 /* FavoritesViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoritesViewModel.swift; sourceTree = "<group>"; };
 		A8BFA866E835912B25D7EA90 /* PlayerControlBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerControlBar.swift; sourceTree = "<group>"; };
+		BBBF05BAEB8FF390E2DF8A55 /* EPGNowPlayingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EPGNowPlayingView.swift; sourceTree = "<group>"; };
 		C554AC027DF4194D3CA8AA91 /* PlaylistDownloader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaylistDownloader.swift; sourceTree = "<group>"; };
+		CA356F3A0D15FC018B5FCC02 /* EPGChannelCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EPGChannelCell.swift; sourceTree = "<group>"; };
 		CAD8842370B92E7BDEB39513 /* FavoritesViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoritesViewController.swift; sourceTree = "<group>"; };
 		DB67C5A512DAD9B21C6A0A2E /* EPGChannelGridViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EPGChannelGridViewController.swift; sourceTree = "<group>"; };
 		DFB610E14721D3A126491592 /* ChannelListViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChannelListViewModel.swift; sourceTree = "<group>"; };
@@ -141,6 +151,7 @@
 		1B93E1C000A366F8A57A8485 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				5B9CA92843B5C6DCD6A9913B /* EPGService.swift */,
 				EB89BCD05ABB9B5B57027D38 /* Database */,
 				8F55546926607733B428C522 /* Network */,
 				C5AF411D0439EFA82C15DCC0 /* Parsers */,
@@ -161,7 +172,10 @@
 		33B1CB34DA73FAEBB2FE7DD5 /* EPG */ = {
 			isa = PBXGroup;
 			children = (
+				CA356F3A0D15FC018B5FCC02 /* EPGChannelCell.swift */,
 				DB67C5A512DAD9B21C6A0A2E /* EPGChannelGridViewController.swift */,
+				BBBF05BAEB8FF390E2DF8A55 /* EPGNowPlayingView.swift */,
+				220C99E2FAB1AF7E903042D2 /* EPGTimelineView.swift */,
 			);
 			path = EPG;
 			sourceTree = "<group>";
@@ -239,6 +253,7 @@
 			children = (
 				02FABF2013D15D7F32B18180 /* BaseViewModel.swift */,
 				DFB610E14721D3A126491592 /* ChannelListViewModel.swift */,
+				81760E17EC6CC8062F236AC1 /* EPGViewModel.swift */,
 				9F76D61A327B298555D3CA20 /* FavoritesViewModel.swift */,
 				4F9D5C89B4E6E6AF0DD84C44 /* PlayerViewModel.swift */,
 			);
@@ -476,9 +491,14 @@
 				496C66E3F89DFDD988356D6A /* Coordinator.swift in Sources */,
 				B79E21750B7419AA9DC426E1 /* DatabaseManager.swift in Sources */,
 				D5E425DF4E6EDF375303A597 /* EPGChannel.swift in Sources */,
+				C0032234C08E8F24D6893A58 /* EPGChannelCell.swift in Sources */,
 				BF69DEFA8A4DF1850F9B1B95 /* EPGChannelGridViewController.swift in Sources */,
 				C9FED0099F9E65D78B6C6CFC /* EPGData.swift in Sources */,
+				449DCD7A7BAEF4E0AFEA6D9F /* EPGNowPlayingView.swift in Sources */,
 				0A2FB88840A79C4F79F7FEA3 /* EPGParser.swift in Sources */,
+				A18C618B8880E1979083921B /* EPGService.swift in Sources */,
+				3F662412944C9169A0384795 /* EPGTimelineView.swift in Sources */,
+				7FEC42BCB5887DC2CBED4BC3 /* EPGViewModel.swift in Sources */,
 				0161B2B33FF92E32F07C4B9D /* EmptyStateView.swift in Sources */,
 				AB0037548AEBD473581F6D86 /* FavoritesViewController.swift in Sources */,
 				373E833729BEF66AB43F7B91 /* FavoritesViewModel.swift in Sources */,

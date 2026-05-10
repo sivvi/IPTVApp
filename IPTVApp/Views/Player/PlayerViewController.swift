@@ -10,6 +10,7 @@ final class PlayerViewController: UIViewController {
     private let closeButton = UIButton(type: .system)
     private let bufferingIndicator = UIActivityIndicatorView(style: .large)
     private let errorOverlay = UIView()
+    private let nowPlayingView = EPGNowPlayingView()
 
     private var playerAspectConstraint: Constraint?
     private var playerTopConstraint: Constraint?
@@ -40,6 +41,7 @@ final class PlayerViewController: UIViewController {
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         viewModel.resetAutoHideTimer()
+        nowPlayingView.configure(epgId: viewModel.channel.epgId)
     }
 
     override func viewWillDisappear(_ animated: Bool) {
@@ -81,6 +83,13 @@ final class PlayerViewController: UIViewController {
 
         controlBar.alpha = 0
         view.addSubview(controlBar)
+
+        nowPlayingView.alpha = 0
+        view.addSubview(nowPlayingView)
+        nowPlayingView.snp.makeConstraints { make in
+            make.leading.trailing.equalToSuperview()
+            make.bottom.equalTo(controlBar.snp.top)
+        }
 
         bufferingIndicator.color = .white
         bufferingIndicator.hidesWhenStopped = true
@@ -203,6 +212,10 @@ final class PlayerViewController: UIViewController {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] visible in
                 self?.controlBar.setVisible(visible)
+                self?.nowPlayingView.setVisible(visible)
+                if visible {
+                    self?.nowPlayingView.configure(epgId: self?.viewModel.channel.epgId)
+                }
             }
             .store(in: &cancellables)
 

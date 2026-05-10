@@ -188,6 +188,18 @@ final class DatabaseManager {
         }
     }
 
+    func fetchNextProgram(for channelId: String) throws -> Program? {
+        guard let dbQueue else { throw AppError.databaseError("数据库未初始化") }
+        let now = Date()
+        return try dbQueue.read { db in
+            try Program
+                .filter(Program.Columns.channelId == channelId)
+                .filter(Program.Columns.startTime > now)
+                .order(Program.Columns.startTime)
+                .fetchOne(db)
+        }
+    }
+
     func deleteExpiredPrograms(before date: Date) throws -> Int {
         guard let dbQueue else { throw AppError.databaseError("数据库未初始化") }
         return try dbQueue.write { db in
