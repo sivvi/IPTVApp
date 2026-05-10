@@ -41,6 +41,13 @@
 	</dict>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_ssdp._udp</string>
+		<string>_upnp._tcp</string>
+	</array>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>IPTVApp 使用本地网络发现投屏设备</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>audio</string>

@@ -8,8 +8,10 @@ final class PlayerControlBar: UIView {
     var onSeekChanged: ((Float) -> Void)?
     var onSeekEnded: ((Float) -> Void)?
     var onFullscreenTapped: (() -> Void)?
+    var onCastingTapped: (() -> Void)?
 
     private let playPauseButton = UIButton(type: .system)
+    private let castingButton = UIButton(type: .system)
     private let currentTimeLabel = UILabel()
     private let progressSlider = UISlider()
     private let durationLabel = UILabel()
@@ -33,6 +35,10 @@ final class PlayerControlBar: UIView {
         playPauseButton.tintColor = .white
         playPauseButton.addTarget(self, action: #selector(playPauseAction), for: .touchUpInside)
 
+        castingButton.setImage(UIImage(systemName: "airplayvideo"), for: .normal)
+        castingButton.tintColor = .white
+        castingButton.addTarget(self, action: #selector(castingAction), for: .touchUpInside)
+
         currentTimeLabel.text = "00:00"
         currentTimeLabel.textColor = .white
         currentTimeLabel.font = .monospacedDigitSystemFont(ofSize: 12, weight: .medium)
@@ -54,21 +60,22 @@ final class PlayerControlBar: UIView {
         fullscreenButton.addTarget(self, action: #selector(fullscreenAction), for: .touchUpInside)
 
         let stack = UIStackView(arrangedSubviews: [
-            playPauseButton, currentTimeLabel, progressSlider, durationLabel, fullscreenButton
+            playPauseButton, castingButton, currentTimeLabel, progressSlider, durationLabel, fullscreenButton
         ])
         stack.axis = .horizontal
         stack.alignment = .center
-        stack.spacing = 12
+        stack.spacing = 8
         addSubview(stack)
 
         playPauseButton.snp.makeConstraints { $0.width.height.equalTo(44) }
+        castingButton.snp.makeConstraints { $0.width.height.equalTo(36) }
         fullscreenButton.snp.makeConstraints { $0.width.height.equalTo(44) }
         currentTimeLabel.snp.makeConstraints { $0.width.equalTo(42) }
         durationLabel.snp.makeConstraints { $0.width.equalTo(42) }
 
         stack.snp.makeConstraints { make in
             make.top.equalToSuperview().offset(4)
-            make.leading.trailing.equalToSuperview().inset(16)
+            make.leading.trailing.equalToSuperview().inset(12)
             make.bottom.equalTo(safeAreaLayoutGuide).offset(-8)
         }
     }
@@ -127,6 +134,16 @@ final class PlayerControlBar: UIView {
 
     @objc private func fullscreenAction() {
         onFullscreenTapped?()
+    }
+
+    @objc private func castingAction() {
+        onCastingTapped?()
+    }
+
+    func updateCastingButton(isCasting: Bool, deviceName: String?) {
+        let symbolName = isCasting ? "airplayvideo" : "airplayvideo"
+        castingButton.setImage(UIImage(systemName: symbolName), for: .normal)
+        castingButton.tintColor = isCasting ? UIColor(hex: "#4ECDC4") : .white
     }
 
     private func makeThumb(size: CGFloat) -> UIImage {

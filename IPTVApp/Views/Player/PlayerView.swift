@@ -9,8 +9,10 @@ final class PlayerView: UIView {
     var onSeekBegan: (() -> Void)?
     var onSeekChanged: ((Float) -> Void)?
     var onSeekEnded: ((Float) -> Void)?
+    var onVolumeChanged: ((Float) -> Void)?
 
     var currentProgress: Float = 0
+    var isCastingMode: Bool = false
 
     override class var layerClass: AnyClass { AVPlayerLayer.self }
     var playerLayer: AVPlayerLayer { layer as! AVPlayerLayer }
@@ -95,6 +97,9 @@ final class PlayerView: UIView {
                 let delta = CGFloat(-translation.y / bounds.height)
                 if isLeftSide {
                     UIScreen.main.brightness = max(0, min(1, initialBrightness + delta))
+                } else if isCastingMode {
+                    let newVolume = max(0, min(1, initialVolume + Float(delta)))
+                    onVolumeChanged?(newVolume)
                 } else {
                     volumeSlider?.value = max(0, min(1, initialVolume + Float(delta)))
                 }

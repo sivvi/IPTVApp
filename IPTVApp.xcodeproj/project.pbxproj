@@ -8,11 +8,16 @@
 
 /* Begin PBXBuildFile section */
 		0161B2B33FF92E32F07C4B9D /* EmptyStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4F455C339C5FEF61B3558B9 /* EmptyStateView.swift */; };
+		029286B4E5CB07254CF523C4 /* PingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F18FCB5559E32677A62A618 /* PingService.swift */; };
 		04E21315013A4DD4D457B42F /* Playlist.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E716082B4DFAAE5AA77F4A5 /* Playlist.swift */; };
+		0530C626543A880F6DD56A2F /* DLNACastingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 101C2331714703223112CBB5 /* DLNACastingService.swift */; };
 		07AF8C5C7D287837D8CCDC52 /* AddPlaylistViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3454810DA664A0165B00E261 /* AddPlaylistViewController.swift */; };
 		0A2FB88840A79C4F79F7FEA3 /* EPGParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA49FF3AB7CED06069DD5F87 /* EPGParser.swift */; };
+		18898D0C5F7D5458ABEC74AB /* CastingServiceProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2A52CA5FA1D37C3BA6D987E /* CastingServiceProtocol.swift */; };
+		214A3087A67F119AFECF8ECF /* DLNADeviceParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A6474B5CDEDB885FC212DC9 /* DLNADeviceParser.swift */; };
 		2308BC382118883FC718E955 /* UIColor+Hex.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C71E22B5B935D19532E1986 /* UIColor+Hex.swift */; };
 		27D91860BF6135CF89207D44 /* SnapKit in Frameworks */ = {isa = PBXBuildFile; productRef = EC09D4A05BE6A9B785181AF3 /* SnapKit */; };
+		2949CD7258EDA605998F6303 /* DevicePickerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47AC0C965F289084A7CCB47E /* DevicePickerViewModel.swift */; };
 		300273B80F9CA62DBFA7F855 /* SettingsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BE23F214E4B02CEDA8BD5DE /* SettingsViewController.swift */; };
 		3332F33D3FC7AC1A36C533FA /* BaseViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02FABF2013D15D7F32B18180 /* BaseViewModel.swift */; };
 		373E833729BEF66AB43F7B91 /* FavoritesViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F76D61A327B298555D3CA20 /* FavoritesViewModel.swift */; };
@@ -26,13 +31,20 @@
 		52D14C92D0C0707FD5D70C4B /* AppError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 791513EA4D9E113C69817694 /* AppError.swift */; };
 		597B40C4E533992F38D37689 /* PlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7554469A3B98E0A2494E9E25 /* PlayerView.swift */; };
 		644069E0F838DC53B5DA17FE /* PlayerServiceProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8771DD390EEEFB0448AEBC29 /* PlayerServiceProtocol.swift */; };
+		67DF8E1D420066C46DB45990 /* CastingState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 141FD61A7859C557674A6373 /* CastingState.swift */; };
 		6CAA9B185E0C00C81765D99C /* PlayerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F9D5C89B4E6E6AF0DD84C44 /* PlayerViewModel.swift */; };
 		6E8559E7370BF79AE1E5B065 /* PlayerState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9038714FB3115BBC5DCE945F /* PlayerState.swift */; };
+		724F745DDE12E7D07D64D6E1 /* DLNADiscoveryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83928ED7318684ECF7016AEC /* DLNADiscoveryService.swift */; };
+		7B533B5C2EB672B8B56C8956 /* DLNADevice.swift in Sources */ = {isa = PBXBuildFile; fileRef = E071D91F2C839EA81897C332 /* DLNADevice.swift */; };
 		7F3BDD8CCDAAF6255CDD7126 /* PlayerControlBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8BFA866E835912B25D7EA90 /* PlayerControlBar.swift */; };
 		7FEC42BCB5887DC2CBED4BC3 /* EPGViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81760E17EC6CC8062F236AC1 /* EPGViewModel.swift */; };
+		809AF4DBE192B01577B7F054 /* CastingError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01EAA35CA2254E59F8609BA7 /* CastingError.swift */; };
 		8759263399DEE814863CA36D /* ViewModelProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF85EC2A3CB2DB2B6274BB37 /* ViewModelProtocol.swift */; };
 		8CBEFD68036A7B876E20FA10 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56EA868A851ED00917B39331 /* SceneDelegate.swift */; };
 		8F3A4E79FB2B4AE2AB905E92 /* PlaylistDownloader.swift in Sources */ = {isa = PBXBuildFile; fileRef = C554AC027DF4194D3CA8AA91 /* PlaylistDownloader.swift */; };
+		9A489EC0577BF99256938A41 /* CastingStatusOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 598B6A6642DA5E99C27C3E95 /* CastingStatusOverlay.swift */; };
+		9C7B203BE5D96A91EF6C0DB3 /* StreamHealth.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87E74297714A4AC2A55B515B /* StreamHealth.swift */; };
+		9C950C9EFF68253A226AE9B6 /* StreamHealthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D042B1C584F36267393133D /* StreamHealthService.swift */; };
 		9D3AE4F54A3C15E4EB40640A /* Program.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9569D6CB5CAF5CD4BCD4A860 /* Program.swift */; };
 		A18C618B8880E1979083921B /* EPGService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B9CA92843B5C6DCD6A9913B /* EPGService.swift */; };
 		A1CF52436C563A68457E314E /* M3UParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EA12BE205507368CDE12342 /* M3UParserTests.swift */; };
@@ -48,10 +60,12 @@
 		C9FED0099F9E65D78B6C6CFC /* EPGData.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED278700E5A303038BBF207E /* EPGData.swift */; };
 		D311A17EF9968C80B7CE3E7D /* Channel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0592FE57F020C6AA8D95F12C /* Channel.swift */; };
 		D5E425DF4E6EDF375303A597 /* EPGChannel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9063CBFDB3C104227383C989 /* EPGChannel.swift */; };
+		D6444A2DC6A9EEDBF0DEDD23 /* DeviceCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BB1EB8984C371C20E033722 /* DeviceCell.swift */; };
 		D8C3B5B9B4F14155204B4463 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2802EB9C788D59636D3A246D /* Constants.swift */; };
 		D8FB2F91443F1F2866AA603D /* ChannelListViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFB610E14721D3A126491592 /* ChannelListViewModel.swift */; };
 		DA79943DCE9070EEB64F576E /* PlayerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DDBC57390037D291668362B /* PlayerViewController.swift */; };
 		DB4B33BF247C541E97EBFDDF /* DatabaseManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DE1AF53317C8BCC8D908E99 /* DatabaseManagerTests.swift */; };
+		E877D8ECFD0BB7F76586C9A1 /* DevicePickerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97DFE1FAED81FDD210031235 /* DevicePickerViewController.swift */; };
 		EAA24576D020135BB21AC644 /* M3UParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B129A9868D689EAB3F993E1 /* M3UParser.swift */; };
 		EDC7E7A05C443F3AEE68F11A /* XMLTVParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5288249E6FD20D6DFFCC41C9 /* XMLTVParserTests.swift */; };
 		F443E0F93B10DCA708FB254B /* ChannelListViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56360588E1B265C2ACC395A4 /* ChannelListViewController.swift */; };
@@ -71,19 +85,25 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		01EAA35CA2254E59F8609BA7 /* CastingError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CastingError.swift; sourceTree = "<group>"; };
 		02FABF2013D15D7F32B18180 /* BaseViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BaseViewModel.swift; sourceTree = "<group>"; };
-		036906A3C21A6B0B7841E9DD /* IPTVApp.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = IPTVApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		036906A3C21A6B0B7841E9DD /* IPTVApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = IPTVApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		0592FE57F020C6AA8D95F12C /* Channel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Channel.swift; sourceTree = "<group>"; };
+		101C2331714703223112CBB5 /* DLNACastingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DLNACastingService.swift; sourceTree = "<group>"; };
 		1301C4D6D56F3FA0E882F274 /* AVPlayerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AVPlayerService.swift; sourceTree = "<group>"; };
+		141FD61A7859C557674A6373 /* CastingState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CastingState.swift; sourceTree = "<group>"; };
 		16504F8A797AE8F33B4C820F /* BaseViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BaseViewController.swift; sourceTree = "<group>"; };
 		171F7C34DEF17AD6389DAA8B /* Coordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Coordinator.swift; sourceTree = "<group>"; };
+		1F18FCB5559E32677A62A618 /* PingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PingService.swift; sourceTree = "<group>"; };
 		21163450AA0D61FA977CFA76 /* PlaylistParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaylistParser.swift; sourceTree = "<group>"; };
 		220C99E2FAB1AF7E903042D2 /* EPGTimelineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EPGTimelineView.swift; sourceTree = "<group>"; };
 		2802EB9C788D59636D3A246D /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
+		2D042B1C584F36267393133D /* StreamHealthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamHealthService.swift; sourceTree = "<group>"; };
 		3454810DA664A0165B00E261 /* AddPlaylistViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddPlaylistViewController.swift; sourceTree = "<group>"; };
 		386EB65120730107B88924DF /* DatabaseManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabaseManager.swift; sourceTree = "<group>"; };
 		3C71E22B5B935D19532E1986 /* UIColor+Hex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIColor+Hex.swift"; sourceTree = "<group>"; };
 		3E716082B4DFAAE5AA77F4A5 /* Playlist.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Playlist.swift; sourceTree = "<group>"; };
+		47AC0C965F289084A7CCB47E /* DevicePickerViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DevicePickerViewModel.swift; sourceTree = "<group>"; };
 		4B129A9868D689EAB3F993E1 /* M3UParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = M3UParser.swift; sourceTree = "<group>"; };
 		4BE23F214E4B02CEDA8BD5DE /* SettingsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewController.swift; sourceTree = "<group>"; };
 		4F9D5C89B4E6E6AF0DD84C44 /* PlayerViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerViewModel.swift; sourceTree = "<group>"; };
@@ -91,6 +111,7 @@
 		56360588E1B265C2ACC395A4 /* ChannelListViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChannelListViewController.swift; sourceTree = "<group>"; };
 		56EA868A851ED00917B39331 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		591A2D788FB7FCB7A29DF49C /* AppCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppCoordinator.swift; sourceTree = "<group>"; };
+		598B6A6642DA5E99C27C3E95 /* CastingStatusOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CastingStatusOverlay.swift; sourceTree = "<group>"; };
 		5B0CE47FB08547457C53B66C /* XMLTVParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XMLTVParser.swift; sourceTree = "<group>"; };
 		5B9CA92843B5C6DCD6A9913B /* EPGService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EPGService.swift; sourceTree = "<group>"; };
 		5EA12BE205507368CDE12342 /* M3UParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = M3UParserTests.swift; sourceTree = "<group>"; };
@@ -100,15 +121,21 @@
 		791513EA4D9E113C69817694 /* AppError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppError.swift; sourceTree = "<group>"; };
 		7DDBC57390037D291668362B /* PlayerViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerViewController.swift; sourceTree = "<group>"; };
 		81760E17EC6CC8062F236AC1 /* EPGViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EPGViewModel.swift; sourceTree = "<group>"; };
+		83928ED7318684ECF7016AEC /* DLNADiscoveryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DLNADiscoveryService.swift; sourceTree = "<group>"; };
 		8771DD390EEEFB0448AEBC29 /* PlayerServiceProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerServiceProtocol.swift; sourceTree = "<group>"; };
+		87E74297714A4AC2A55B515B /* StreamHealth.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamHealth.swift; sourceTree = "<group>"; };
 		88C3AC954F97044CBED3B034 /* Logger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Logger.swift; sourceTree = "<group>"; };
+		8A6474B5CDEDB885FC212DC9 /* DLNADeviceParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DLNADeviceParser.swift; sourceTree = "<group>"; };
+		8BB1EB8984C371C20E033722 /* DeviceCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceCell.swift; sourceTree = "<group>"; };
 		8DE1AF53317C8BCC8D908E99 /* DatabaseManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabaseManagerTests.swift; sourceTree = "<group>"; };
 		9038714FB3115BBC5DCE945F /* PlayerState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerState.swift; sourceTree = "<group>"; };
 		9063CBFDB3C104227383C989 /* EPGChannel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EPGChannel.swift; sourceTree = "<group>"; };
 		9569D6CB5CAF5CD4BCD4A860 /* Program.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Program.swift; sourceTree = "<group>"; };
+		97DFE1FAED81FDD210031235 /* DevicePickerViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DevicePickerViewController.swift; sourceTree = "<group>"; };
 		9985B3F1FE1EE16159EEEAEE /* ChannelCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChannelCell.swift; sourceTree = "<group>"; };
 		9F76D61A327B298555D3CA20 /* FavoritesViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoritesViewModel.swift; sourceTree = "<group>"; };
 		A8BFA866E835912B25D7EA90 /* PlayerControlBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerControlBar.swift; sourceTree = "<group>"; };
+		B2A52CA5FA1D37C3BA6D987E /* CastingServiceProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CastingServiceProtocol.swift; sourceTree = "<group>"; };
 		BBBF05BAEB8FF390E2DF8A55 /* EPGNowPlayingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EPGNowPlayingView.swift; sourceTree = "<group>"; };
 		C554AC027DF4194D3CA8AA91 /* PlaylistDownloader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaylistDownloader.swift; sourceTree = "<group>"; };
 		CA356F3A0D15FC018B5FCC02 /* EPGChannelCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EPGChannelCell.swift; sourceTree = "<group>"; };
@@ -116,6 +143,7 @@
 		DB67C5A512DAD9B21C6A0A2E /* EPGChannelGridViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EPGChannelGridViewController.swift; sourceTree = "<group>"; };
 		DFB610E14721D3A126491592 /* ChannelListViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChannelListViewModel.swift; sourceTree = "<group>"; };
 		DFF45B0F4094E3640AEAA111 /* PlayerError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerError.swift; sourceTree = "<group>"; };
+		E071D91F2C839EA81897C332 /* DLNADevice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DLNADevice.swift; sourceTree = "<group>"; };
 		E223B8CDA9B1A8D7F87E1D91 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		ED278700E5A303038BBF207E /* EPGData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EPGData.swift; sourceTree = "<group>"; };
 		EF85EC2A3CB2DB2B6274BB37 /* ViewModelProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewModelProtocol.swift; sourceTree = "<group>"; };
@@ -152,6 +180,7 @@
 			isa = PBXGroup;
 			children = (
 				5B9CA92843B5C6DCD6A9913B /* EPGService.swift */,
+				B85B3EC44C67DB26A306448E /* Casting */,
 				EB89BCD05ABB9B5B57027D38 /* Database */,
 				8F55546926607733B428C522 /* Network */,
 				C5AF411D0439EFA82C15DCC0 /* Parsers */,
@@ -228,6 +257,7 @@
 		5670A8BBCEA8511B191B8BEA /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				6CC98423002F83153D24CBA6 /* Casting */,
 				50BD813EA81724D6E50C4A31 /* Common */,
 				33B1CB34DA73FAEBB2FE7DD5 /* EPG */,
 				54C639CB4FAD637BD983565D /* Favorites */,
@@ -253,6 +283,7 @@
 			children = (
 				02FABF2013D15D7F32B18180 /* BaseViewModel.swift */,
 				DFB610E14721D3A126491592 /* ChannelListViewModel.swift */,
+				47AC0C965F289084A7CCB47E /* DevicePickerViewModel.swift */,
 				81760E17EC6CC8062F236AC1 /* EPGViewModel.swift */,
 				9F76D61A327B298555D3CA20 /* FavoritesViewModel.swift */,
 				4F9D5C89B4E6E6AF0DD84C44 /* PlayerViewModel.swift */,
@@ -277,6 +308,16 @@
 				4BE23F214E4B02CEDA8BD5DE /* SettingsViewController.swift */,
 			);
 			path = Settings;
+			sourceTree = "<group>";
+		};
+		6CC98423002F83153D24CBA6 /* Casting */ = {
+			isa = PBXGroup;
+			children = (
+				598B6A6642DA5E99C27C3E95 /* CastingStatusOverlay.swift */,
+				8BB1EB8984C371C20E033722 /* DeviceCell.swift */,
+				97DFE1FAED81FDD210031235 /* DevicePickerViewController.swift */,
+			);
+			path = Casting;
 			sourceTree = "<group>";
 		};
 		70349C34E25F34E0882A1510 /* Products */ = {
@@ -316,7 +357,9 @@
 			isa = PBXGroup;
 			children = (
 				F58FE8E738B8BF87C57B4F47 /* NetworkMonitor.swift */,
+				1F18FCB5559E32677A62A618 /* PingService.swift */,
 				C554AC027DF4194D3CA8AA91 /* PlaylistDownloader.swift */,
+				2D042B1C584F36267393133D /* StreamHealthService.swift */,
 			);
 			path = Network;
 			sourceTree = "<group>";
@@ -328,6 +371,27 @@
 				EF85EC2A3CB2DB2B6274BB37 /* ViewModelProtocol.swift */,
 			);
 			path = Protocols;
+			sourceTree = "<group>";
+		};
+		B1A6D11B94AB0F52402A7A29 /* Casting */ = {
+			isa = PBXGroup;
+			children = (
+				01EAA35CA2254E59F8609BA7 /* CastingError.swift */,
+				141FD61A7859C557674A6373 /* CastingState.swift */,
+				E071D91F2C839EA81897C332 /* DLNADevice.swift */,
+			);
+			path = Casting;
+			sourceTree = "<group>";
+		};
+		B85B3EC44C67DB26A306448E /* Casting */ = {
+			isa = PBXGroup;
+			children = (
+				B2A52CA5FA1D37C3BA6D987E /* CastingServiceProtocol.swift */,
+				101C2331714703223112CBB5 /* DLNACastingService.swift */,
+				8A6474B5CDEDB885FC212DC9 /* DLNADeviceParser.swift */,
+				83928ED7318684ECF7016AEC /* DLNADiscoveryService.swift */,
+			);
+			path = Casting;
 			sourceTree = "<group>";
 		};
 		C5AF411D0439EFA82C15DCC0 /* Parsers */ = {
@@ -349,6 +413,8 @@
 				ED278700E5A303038BBF207E /* EPGData.swift */,
 				3E716082B4DFAAE5AA77F4A5 /* Playlist.swift */,
 				9569D6CB5CAF5CD4BCD4A860 /* Program.swift */,
+				87E74297714A4AC2A55B515B /* StreamHealth.swift */,
+				B1A6D11B94AB0F52402A7A29 /* Casting */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -422,8 +488,6 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1430;
-				TargetAttributes = {
-				};
 			};
 			buildConfigurationList = 34AEC03B22A43A883EB258DD /* Build configuration list for PBXProject "IPTVApp" */;
 			developmentRegion = en;
@@ -483,13 +547,24 @@
 				52D14C92D0C0707FD5D70C4B /* AppError.swift in Sources */,
 				F9926BDAE32C115BB8A7BF49 /* BaseViewController.swift in Sources */,
 				3332F33D3FC7AC1A36C533FA /* BaseViewModel.swift in Sources */,
+				809AF4DBE192B01577B7F054 /* CastingError.swift in Sources */,
+				18898D0C5F7D5458ABEC74AB /* CastingServiceProtocol.swift in Sources */,
+				67DF8E1D420066C46DB45990 /* CastingState.swift in Sources */,
+				9A489EC0577BF99256938A41 /* CastingStatusOverlay.swift in Sources */,
 				D311A17EF9968C80B7CE3E7D /* Channel.swift in Sources */,
 				39BF4E17858F868CF693FCDF /* ChannelCell.swift in Sources */,
 				F443E0F93B10DCA708FB254B /* ChannelListViewController.swift in Sources */,
 				D8FB2F91443F1F2866AA603D /* ChannelListViewModel.swift in Sources */,
 				D8C3B5B9B4F14155204B4463 /* Constants.swift in Sources */,
 				496C66E3F89DFDD988356D6A /* Coordinator.swift in Sources */,
+				0530C626543A880F6DD56A2F /* DLNACastingService.swift in Sources */,
+				7B533B5C2EB672B8B56C8956 /* DLNADevice.swift in Sources */,
+				214A3087A67F119AFECF8ECF /* DLNADeviceParser.swift in Sources */,
+				724F745DDE12E7D07D64D6E1 /* DLNADiscoveryService.swift in Sources */,
 				B79E21750B7419AA9DC426E1 /* DatabaseManager.swift in Sources */,
+				D6444A2DC6A9EEDBF0DEDD23 /* DeviceCell.swift in Sources */,
+				E877D8ECFD0BB7F76586C9A1 /* DevicePickerViewController.swift in Sources */,
+				2949CD7258EDA605998F6303 /* DevicePickerViewModel.swift in Sources */,
 				D5E425DF4E6EDF375303A597 /* EPGChannel.swift in Sources */,
 				C0032234C08E8F24D6893A58 /* EPGChannelCell.swift in Sources */,
 				BF69DEFA8A4DF1850F9B1B95 /* EPGChannelGridViewController.swift in Sources */,
@@ -505,6 +580,7 @@
 				B8226D5BEAA131A6DBD23D55 /* Logger.swift in Sources */,
 				EAA24576D020135BB21AC644 /* M3UParser.swift in Sources */,
 				3FCE0E9F008149767A26FEBC /* NetworkMonitor.swift in Sources */,
+				029286B4E5CB07254CF523C4 /* PingService.swift in Sources */,
 				7F3BDD8CCDAAF6255CDD7126 /* PlayerControlBar.swift in Sources */,
 				BB487BED69EAD2DAE83A64CF /* PlayerError.swift in Sources */,
 				644069E0F838DC53B5DA17FE /* PlayerServiceProtocol.swift in Sources */,
@@ -518,6 +594,8 @@
 				9D3AE4F54A3C15E4EB40640A /* Program.swift in Sources */,
 				8CBEFD68036A7B876E20FA10 /* SceneDelegate.swift in Sources */,
 				300273B80F9CA62DBFA7F855 /* SettingsViewController.swift in Sources */,
+				9C7B203BE5D96A91EF6C0DB3 /* StreamHealth.swift in Sources */,
+				9C950C9EFF68253A226AE9B6 /* StreamHealthService.swift in Sources */,
 				2308BC382118883FC718E955 /* UIColor+Hex.swift in Sources */,
 				8759263399DEE814863CA36D /* ViewModelProtocol.swift in Sources */,
 				434AC66D4F5F1F658B547056 /* XMLTVParser.swift in Sources */,
@@ -584,6 +662,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = 6N6GM9UKKZ;
 				INFOPLIST_FILE = IPTVApp/Resources/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -665,6 +744,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = 6N6GM9UKKZ;
 				INFOPLIST_FILE = IPTVApp/Resources/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",

@@ -5,6 +5,7 @@ enum PlayerError: Error, Equatable {
     case playbackFailed(String)
     case networkUnavailable
     case bufferingTimeout
+    case castFailed(String)
     case unknown
 
     var localizedDescription: String {
@@ -13,6 +14,7 @@ enum PlayerError: Error, Equatable {
         case .playbackFailed(let msg): return "播放失败：\(msg)"
         case .networkUnavailable: return "网络不可用"
         case .bufferingTimeout:  return "缓冲超时"
+        case .castFailed(let msg): return "投屏失败：\(msg)"
         case .unknown:           return "未知错误"
         }
     }

@@ -64,7 +64,7 @@ extension FavoritesViewController: UITableViewDataSource {
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: ChannelCell.reuseIdentifier, for: indexPath) as! ChannelCell
         let channel = viewModel.favoriteChannels[indexPath.row]
-        cell.configure(channel: channel, currentProgram: nil)
+        cell.configure(channel: channel, currentProgram: nil, health: nil)
         return cell
     }
 }

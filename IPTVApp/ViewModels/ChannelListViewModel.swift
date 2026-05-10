@@ -6,9 +6,11 @@ final class ChannelListViewModel: BaseViewModel {
     @Published var groupedChannels: [(group: String, channels: [Channel])] = []
     @Published var searchQuery: String = ""
     @Published var playlists: [Playlist] = []
+    @Published var streamHealth: [String: StreamHealth] = [:]
 
     private var currentPrograms: [String: Program] = [:]
     private var allChannels: [Channel] = []
+    private var healthRefreshToken = 0
 
     override init() {
         super.init()
@@ -25,16 +27,26 @@ final class ChannelListViewModel: BaseViewModel {
 
     func loadChannels() {
         isLoading.send(true)
-        defer { isLoading.send(false) }
 
-        do {
-            allChannels = try DatabaseManager.shared.fetchAllChannels()
-            let channelIds = allChannels.map(\.id)
-            currentPrograms = (try? DatabaseManager.shared.fetchCurrentPrograms(for: channelIds)) ?? [:]
-            applyGrouping()
-        } catch {
-            errorMessage.send("加载频道失败: \(error.localizedDescription)")
-            Logger.general.error("加载频道失败: \(error.localizedDescription)")
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let self else { return }
+            do {
+                let channels = try DatabaseManager.shared.fetchAllChannels()
+                let ids = channels.map(\.id)
+                let programs = (try? DatabaseManager.shared.fetchCurrentPrograms(for: ids)) ?? [:]
+                DispatchQueue.main.async {
+                    self.allChannels = channels
+                    self.currentPrograms = programs
+                    self.applyGrouping()
+                    self.isLoading.send(false)
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    self.isLoading.send(false)
+                    self.errorMessage.send("加载频道失败: \(error.localizedDescription)")
+                    Logger.general.error("加载频道失败: \(error.localizedDescription)")
+                }
+            }
         }
     }
 
@@ -122,15 +134,59 @@ final class ChannelListViewModel: BaseViewModel {
     }
 
     func loadPlaylists() {
-        do {
-            playlists = try DatabaseManager.shared.fetchAllPlaylists()
-        } catch {
-            Logger.general.error("加载播放列表失败: \(error.localizedDescription)")
+        DispatchQueue.global(qos: .utility).async { [weak self] in
+            do {
+                let result = try DatabaseManager.shared.fetchAllPlaylists()
+                DispatchQueue.main.async {
+                    self?.playlists = result
+                }
+            } catch {
+                Logger.general.error("加载播放列表失败: \(error.localizedDescription)")
+            }
         }
     }
 
     func currentProgram(for channelId: String) -> Program? {
         currentPrograms[channelId]
+    }
+
+    func health(for channelId: String) -> StreamHealth? {
+        streamHealth[channelId]
+    }
+
+    func refreshStreamHealth() {
+        let channels = allChannels
+        guard !channels.isEmpty else { return }
+
+        let token = healthRefreshToken + 1
+        healthRefreshToken = token
+
+        let group = DispatchGroup()
+        var results: [String: StreamHealth] = [:]
+        let resultsLock = NSLock()
+
+        DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 1.5) { [weak self] in
+            guard let self, self.healthRefreshToken == token else { return }
+
+            for channel in channels {
+                guard let url = URL(string: channel.url) else { continue }
+                group.enter()
+                StreamHealthService.shared.checkHealth(channelId: channel.id, url: url) { health in
+                    resultsLock.lock()
+                    results[channel.id] = health
+                    resultsLock.unlock()
+                    group.leave()
+                }
+            }
+
+            group.notify(queue: .main) { [weak self] in
+                guard let self, self.healthRefreshToken == token else { return }
+                resultsLock.lock()
+                let snapshot = results
+                resultsLock.unlock()
+                self.streamHealth.merge(snapshot) { _, new in new }
+            }
+        }
     }
 
     // MARK: - Private

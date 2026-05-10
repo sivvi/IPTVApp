@@ -11,6 +11,7 @@ final class PlayerViewController: UIViewController {
     private let bufferingIndicator = UIActivityIndicatorView(style: .large)
     private let errorOverlay = UIView()
     private let nowPlayingView = EPGNowPlayingView()
+    private let castingStatusOverlay = CastingStatusOverlay()
 
     private var playerAspectConstraint: Constraint?
     private var playerTopConstraint: Constraint?
@@ -91,6 +92,13 @@ final class PlayerViewController: UIViewController {
             make.bottom.equalTo(controlBar.snp.top)
         }
 
+        castingStatusOverlay.isHidden = true
+        castingStatusOverlay.onDisconnectTapped = { [weak self] in
+            self?.viewModel.disconnectCasting()
+        }
+        view.addSubview(castingStatusOverlay)
+        castingStatusOverlay.snp.makeConstraints { $0.edges.equalToSuperview() }
+
         bufferingIndicator.color = .white
         bufferingIndicator.hidesWhenStopped = true
         view.addSubview(bufferingIndicator)
@@ -128,15 +136,31 @@ final class PlayerViewController: UIViewController {
         messageLabel.tag = 100
         stack.addArrangedSubview(messageLabel)
 
+        let buttonRow = UIStackView()
+        buttonRow.axis = .horizontal
+        buttonRow.spacing = 12
+        stack.addArrangedSubview(buttonRow)
+
+        let exitButton = UIButton(type: .system)
+        exitButton.setTitle("返回频道列表", for: .normal)
+        exitButton.setTitleColor(UIColor(hex: "#FF6B35"), for: .normal)
+        exitButton.titleLabel?.font = .systemFont(ofSize: 16, weight: .semibold)
+        exitButton.layer.borderColor = UIColor(hex: "#FF6B35").cgColor
+        exitButton.layer.borderWidth = 1
+        exitButton.layer.cornerRadius = 8
+        exitButton.addTarget(self, action: #selector(closeTapped), for: .touchUpInside)
+        exitButton.snp.makeConstraints { $0.width.equalTo(100).priority(.high) }
+        buttonRow.addArrangedSubview(exitButton)
+
         let retryButton = UIButton(type: .system)
         retryButton.setTitle("重新播放", for: .normal)
         retryButton.setTitleColor(.white, for: .normal)
         retryButton.titleLabel?.font = .systemFont(ofSize: 16, weight: .semibold)
         retryButton.backgroundColor = UIColor(hex: "#FF6B35")
         retryButton.layer.cornerRadius = 8
-        retryButton.contentEdgeInsets = UIEdgeInsets(top: 10, left: 24, bottom: 10, right: 24)
         retryButton.addTarget(self, action: #selector(retryTapped), for: .touchUpInside)
-        stack.addArrangedSubview(retryButton)
+        retryButton.snp.makeConstraints { $0.width.equalTo(120).priority(.high) }
+        buttonRow.addArrangedSubview(retryButton)
     }
 
     private func setupPortraitConstraints() {
@@ -246,6 +270,32 @@ final class PlayerViewController: UIViewController {
                 self?.showErrorToast(message)
             }
             .store(in: &cancellables)
+
+        viewModel.isCasting
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] casting in
+                self?.playerView.isCastingMode = casting
+                self?.playerView.isHidden = casting
+                self?.castingStatusOverlay.isHidden = !casting
+                self?.controlBar.updateCastingButton(isCasting: casting, deviceName: self?.viewModel.castingDeviceName.value)
+            }
+            .store(in: &cancellables)
+
+        viewModel.castingState
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] state in
+                if let name = state.currentDevice?.friendlyName {
+                    self?.castingStatusOverlay.configure(deviceName: name, state: state)
+                }
+            }
+            .store(in: &cancellables)
+
+        viewModel.castingDeviceName
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] name in
+                self?.controlBar.updateCastingButton(isCasting: name != nil, deviceName: name)
+            }
+            .store(in: &cancellables)
     }
 
     private func setupControlBarCallbacks() {
@@ -269,6 +319,10 @@ final class PlayerViewController: UIViewController {
         controlBar.onFullscreenTapped = { [weak self] in
             self?.toggleFullscreen()
         }
+
+        controlBar.onCastingTapped = { [weak self] in
+            self?.presentDevicePicker()
+        }
     }
 
     private func setupPlayerViewCallbacks() {
@@ -290,6 +344,10 @@ final class PlayerViewController: UIViewController {
 
         playerView.onSeekEnded = { [weak self] value in
             self?.viewModel.endSeek(toProgress: value)
+        }
+
+        playerView.onVolumeChanged = { [weak self] value in
+            self?.viewModel.setCastingVolume(value)
         }
     }
 
@@ -318,6 +376,18 @@ final class PlayerViewController: UIViewController {
     @objc private func retryTapped() {
         errorOverlay.isHidden = true
         viewModel.startPlayback()
+    }
+
+    private func presentDevicePicker() {
+        let pickerVM = DevicePickerViewModel()
+        let pickerVC = DevicePickerViewController(viewModel: pickerVM)
+        pickerVC.onDeviceSelected = { [weak self] device in
+            self?.dismiss(animated: true) {
+                self?.viewModel.connectToDevice(device)
+            }
+        }
+        let nav = UINavigationController(rootViewController: pickerVC)
+        present(nav, animated: true)
     }
 
     private func toggleFullscreen() {

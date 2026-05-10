@@ -5,7 +5,7 @@ import Combine
 final class ChannelListViewController: BaseViewController<ChannelListViewModel> {
 
     private let tableView = UITableView(frame: .zero, style: .plain)
-    private let searchController = UISearchController(searchResultsController: nil)
+    private let searchBar = UISearchBar()
     private let refreshControl = UIRefreshControl()
 
     override func viewDidLoad() {
@@ -13,10 +13,14 @@ final class ChannelListViewController: BaseViewController<ChannelListViewModel> 
         title = "直播"
         setupNavigationBar()
         setupTableView()
-        setupSearchController()
+        setupSearchBar()
         setupBindings()
         viewModel.loadChannels()
         viewModel.loadPlaylists()
+        // Defer health checks so UI settles first (keyboard, initial render)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            self?.viewModel.refreshStreamHealth()
+        }
     }
 
     private func setupNavigationBar() {
@@ -36,16 +40,28 @@ final class ChannelListViewController: BaseViewController<ChannelListViewModel> 
         tableView.separatorColor = UIColor(hex: "#F1F2F6")
         tableView.refreshControl = refreshControl
         tableView.sectionIndexColor = UIColor(hex: "#FF6B35")
-        view.addSubview(tableView)
-        tableView.snp.makeConstraints { $0.edges.equalToSuperview() }
+        tableView.keyboardDismissMode = .onDrag
     }
 
-    private func setupSearchController() {
-        searchController.obscuresBackgroundDuringPresentation = false
-        searchController.searchBar.placeholder = "搜索频道"
-        searchController.searchResultsUpdater = self
-        navigationItem.searchController = searchController
-        definesPresentationContext = true
+    private func setupSearchBar() {
+        searchBar.placeholder = "搜索频道"
+        searchBar.delegate = self
+        searchBar.searchBarStyle = .minimal
+        searchBar.autocapitalizationType = .none
+
+        // Fixed search bar above the table — stays visible when scrolling
+        view.addSubview(searchBar)
+        view.addSubview(tableView)
+
+        searchBar.snp.makeConstraints { make in
+            make.top.equalTo(view.safeAreaLayoutGuide)
+            make.leading.trailing.equalToSuperview()
+        }
+
+        tableView.snp.makeConstraints { make in
+            make.top.equalTo(searchBar.snp.bottom)
+            make.leading.trailing.bottom.equalToSuperview()
+        }
     }
 
     private func setupBindings() {
@@ -66,6 +82,13 @@ final class ChannelListViewController: BaseViewController<ChannelListViewModel> 
             }
             .store(in: &viewModel.cancellables)
 
+        viewModel.$streamHealth
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.tableView.reloadData()
+            }
+            .store(in: &viewModel.cancellables)
+
         refreshControl.addTarget(self, action: #selector(refreshTriggered), for: .valueChanged)
         let longPress = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPress(_:)))
         tableView.addGestureRecognizer(longPress)
@@ -73,6 +96,7 @@ final class ChannelListViewController: BaseViewController<ChannelListViewModel> 
 
     @objc private func refreshTriggered() {
         viewModel.loadChannels()
+        viewModel.refreshStreamHealth()
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
             self?.refreshControl.endRefreshing()
         }
@@ -109,6 +133,18 @@ final class ChannelListViewController: BaseViewController<ChannelListViewModel> 
     }
 }
 
+// MARK: - UISearchBarDelegate
+
+extension ChannelListViewController: UISearchBarDelegate {
+    func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+        viewModel.searchQuery = searchText
+    }
+
+    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+        searchBar.resignFirstResponder()
+    }
+}
+
 // MARK: - UITableViewDataSource
 
 extension ChannelListViewController: UITableViewDataSource {
@@ -123,7 +159,8 @@ extension ChannelListViewController: UITableViewDataSource {
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: ChannelCell.reuseIdentifier, for: indexPath) as! ChannelCell
         let channel = viewModel.groupedChannels[indexPath.section].channels[indexPath.row]
-        cell.configure(channel: channel, currentProgram: viewModel.currentProgram(for: channel.id))
+        let health = viewModel.health(for: channel.id)
+        cell.configure(channel: channel, currentProgram: viewModel.currentProgram(for: channel.id), health: health)
         return cell
     }
 
@@ -137,16 +174,9 @@ extension ChannelListViewController: UITableViewDataSource {
 extension ChannelListViewController: UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
+        searchBar.resignFirstResponder()
         let channel = viewModel.groupedChannels[indexPath.section].channels[indexPath.row]
         let playerVC = PlayerViewController(channel: channel)
         present(playerVC, animated: true)
-    }
-}
-
-// MARK: - UISearchResultsUpdating
-
-extension ChannelListViewController: UISearchResultsUpdating {
-    func updateSearchResults(for searchController: UISearchController) {
-        viewModel.searchQuery = searchController.searchBar.text ?? ""
     }
 }
