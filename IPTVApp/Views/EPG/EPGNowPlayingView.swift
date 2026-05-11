@@ -110,6 +110,10 @@ final class EPGNowPlayingView: UIView {
         }
     }
 
+    override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
+        return nil
+    }
+
     func setVisible(_ visible: Bool, animated: Bool = true) {
         UIView.animate(withDuration: animated ? 0.25 : 0) {
             self.alpha = visible ? 1 : 0

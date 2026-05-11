@@ -2,7 +2,7 @@ import UIKit
 import SnapKit
 import Combine
 
-final class PlayerViewController: UIViewController {
+final class PlayerViewController: UIViewController, UIGestureRecognizerDelegate {
 
     private let viewModel: PlayerViewModel
     private let playerView = PlayerView()
@@ -12,6 +12,7 @@ final class PlayerViewController: UIViewController {
     private let errorOverlay = UIView()
     private let nowPlayingView = EPGNowPlayingView()
     private let castingStatusOverlay = CastingStatusOverlay()
+    private let viewTapRecognizer = UITapGestureRecognizer()
 
     private var playerAspectConstraint: Constraint?
     private var playerTopConstraint: Constraint?
@@ -47,18 +48,33 @@ final class PlayerViewController: UIViewController {
 
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
+        // Safety net: force portrait before this view leaves the window.
+        // If the user double-taps close or a system gesture dismisses us
+        // while in landscape, the app would be stuck in landscape forever.
         if viewModel.isFullscreen.value {
-            exitFullscreen()
+            viewModel.toggleFullscreen()
+            setupPortraitConstraints()
+        }
+        if #available(iOS 16.0, *) {
+            setNeedsUpdateOfSupportedInterfaceOrientations()
+            view.window?.windowScene?.requestGeometryUpdate(
+                .iOS(interfaceOrientations: .portrait))
+        } else {
+            UIDevice.current.setValue(UIInterfaceOrientation.portrait.rawValue, forKey: "orientation")
         }
     }
 
     // MARK: - Orientation
 
     override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
-        viewModel.isFullscreen.value ? .allButUpsideDown : .portrait
+        viewModel.isFullscreen.value ? .landscape : .portrait
     }
 
     override var prefersStatusBarHidden: Bool {
+        viewModel.isFullscreen.value
+    }
+
+    override var prefersHomeIndicatorAutoHidden: Bool {
         viewModel.isFullscreen.value
     }
 
@@ -86,6 +102,7 @@ final class PlayerViewController: UIViewController {
         view.addSubview(controlBar)
 
         nowPlayingView.alpha = 0
+        nowPlayingView.isUserInteractionEnabled = false
         view.addSubview(nowPlayingView)
         nowPlayingView.snp.makeConstraints { make in
             make.leading.trailing.equalToSuperview()
@@ -107,6 +124,19 @@ final class PlayerViewController: UIViewController {
         }
 
         setupErrorOverlay()
+
+        viewTapRecognizer.delegate = self
+        viewTapRecognizer.cancelsTouchesInView = false
+        viewTapRecognizer.addTarget(self, action: #selector(viewTapped))
+        // Wait for PlayerView's single tap to fire first — if it handles the tap,
+        // this recognizer will fail, avoiding a double-toggle.
+        if let playerSingleTap = playerView.gestureRecognizers?.first(where: {
+            ($0 as? UITapGestureRecognizer)?.numberOfTapsRequired == 1
+        }) {
+            viewTapRecognizer.require(toFail: playerSingleTap)
+        }
+        view.addGestureRecognizer(viewTapRecognizer)
+
         setupPortraitConstraints()
     }
 
@@ -369,8 +399,29 @@ final class PlayerViewController: UIViewController {
 
     // MARK: - Actions
 
+    @objc private func viewTapped(_ gesture: UITapGestureRecognizer) {
+        guard !viewModel.isControlBarVisible.value else { return }
+        let location = gesture.location(in: view)
+        // Don't intercept taps on the close button or control bar area
+        if closeButton.frame.contains(location) { return }
+        viewModel.toggleControlBarVisibility()
+    }
+
     @objc private func closeTapped() {
-        dismiss(animated: true)
+        if viewModel.isFullscreen.value {
+            // Exit fullscreen first, then dismiss once the rotation completes.
+            // A two-tap flow (first to exit FS, second to dismiss) allows the
+            // user to dismiss while the rotation is still in flight, locking
+            // the app in landscape. One-tap with a delay avoids that.
+            closeButton.isEnabled = false
+            viewModel.toggleFullscreen()
+            exitFullscreen()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak self] in
+                self?.dismiss(animated: true)
+            }
+        } else {
+            dismiss(animated: true)
+        }
     }
 
     @objc private func retryTapped() {
@@ -394,30 +445,49 @@ final class PlayerViewController: UIViewController {
         let goingFullscreen = !viewModel.isFullscreen.value
         viewModel.toggleFullscreen()
 
-        UIView.animate(withDuration: 0.3) {
-            if goingFullscreen {
-                self.setupFullscreenConstraints()
-            } else {
-                self.setupPortraitConstraints()
-            }
-            self.view.layoutIfNeeded()
-            self.setNeedsStatusBarAppearanceUpdate()
+        if goingFullscreen {
+            enterFullscreen()
+        } else {
+            exitFullscreen()
+        }
+    }
+
+    private func enterFullscreen() {
+        // 1. Switch constraints to fill screen
+        setupFullscreenConstraints()
+        view.layoutIfNeeded()
+
+        // 2. Force landscape
+        if #available(iOS 16.0, *) {
+            setNeedsUpdateOfSupportedInterfaceOrientations()
+            guard let scene = view.window?.windowScene else { return }
+            scene.requestGeometryUpdate(.iOS(interfaceOrientations: .landscape))
+        } else {
+            UIDevice.current.setValue(UIInterfaceOrientation.landscapeRight.rawValue, forKey: "orientation")
         }
 
-        if goingFullscreen {
-            UIDevice.current.setValue(UIInterfaceOrientation.landscapeRight.rawValue, forKey: "orientation")
-        } else {
-            UIDevice.current.setValue(UIInterfaceOrientation.portrait.rawValue, forKey: "orientation")
+        UIView.animate(withDuration: 0.3) {
+            self.setNeedsStatusBarAppearanceUpdate()
+            self.setNeedsUpdateOfHomeIndicatorAutoHidden()
         }
     }
 
     private func exitFullscreen() {
-        viewModel.toggleFullscreen()
-        UIView.animate(withDuration: 0.25) {
-            self.setupPortraitConstraints()
-            self.view.layoutIfNeeded()
+        setupPortraitConstraints()
+
+        if #available(iOS 16.0, *) {
+            setNeedsUpdateOfSupportedInterfaceOrientations()
+            guard let scene = view.window?.windowScene else { return }
+            scene.requestGeometryUpdate(.iOS(interfaceOrientations: .portrait))
+        } else {
+            UIDevice.current.setValue(UIInterfaceOrientation.portrait.rawValue, forKey: "orientation")
         }
-        UIDevice.current.setValue(UIInterfaceOrientation.portrait.rawValue, forKey: "orientation")
+
+        UIView.animate(withDuration: 0.3) {
+            self.view.layoutIfNeeded()
+            self.setNeedsStatusBarAppearanceUpdate()
+            self.setNeedsUpdateOfHomeIndicatorAutoHidden()
+        }
     }
 
     private func showErrorOverlay(_ message: String) {
@@ -427,6 +497,21 @@ final class PlayerViewController: UIViewController {
         errorOverlay.isHidden = false
         errorOverlay.alpha = 0
         UIView.animate(withDuration: 0.3) { self.errorOverlay.alpha = 1 }
+    }
+
+    // MARK: - UIGestureRecognizerDelegate
+
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+        // Allow the view-level tap to coexist with PlayerView's gestures
+        true
+    }
+
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
+        // Don't handle touches on interactive subviews
+        let location = touch.location(in: view)
+        if controlBar.alpha > 0.5, controlBar.frame.contains(location) { return false }
+        if errorOverlay.alpha > 0.5, !errorOverlay.isHidden { return false }
+        return true
     }
 
     private func showErrorToast(_ message: String) {

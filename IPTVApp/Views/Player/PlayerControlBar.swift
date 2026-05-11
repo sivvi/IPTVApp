@@ -1,5 +1,6 @@
 import UIKit
 import SnapKit
+import MediaPlayer
 
 final class PlayerControlBar: UIView {
 
@@ -17,13 +18,24 @@ final class PlayerControlBar: UIView {
     private let durationLabel = UILabel()
     private let fullscreenButton = UIButton(type: .system)
 
+    private let volumeIcon = UIImageView()
+    private let volumeSlider = MPVolumeView()
+    private var volumeObserver: Any?
+
     override init(frame: CGRect) {
         super.init(frame: frame)
         setupUI()
+        observeVolume()
     }
 
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+
+    deinit {
+        if let obs = volumeObserver {
+            NotificationCenter.default.removeObserver(obs)
+        }
     }
 
     private func setupUI() {
@@ -31,6 +43,22 @@ final class PlayerControlBar: UIView {
         layer.cornerRadius = 12
         layer.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner]
 
+        // Volume row
+        volumeIcon.tintColor = .white
+        volumeIcon.contentMode = .scaleAspectFit
+        updateVolumeIcon()
+        addSubview(volumeIcon)
+
+        volumeSlider.showsRouteButton = false
+        volumeSlider.tintColor = UIColor(hex: "#FF6B35")
+        volumeSlider.setVolumeThumbImage(makeThumb(size: 12), for: .normal)
+        if let slider = volumeSlider.subviews.first(where: { $0 is UISlider }) as? UISlider {
+            slider.minimumTrackTintColor = UIColor(hex: "#FF6B35")
+            slider.maximumTrackTintColor = UIColor.white.withAlphaComponent(0.3)
+        }
+        addSubview(volumeSlider)
+
+        // Playback row
         playPauseButton.setImage(UIImage(systemName: "play.fill"), for: .normal)
         playPauseButton.tintColor = .white
         playPauseButton.addTarget(self, action: #selector(playPauseAction), for: .touchUpInside)
@@ -55,29 +83,87 @@ final class PlayerControlBar: UIView {
         durationLabel.textColor = .white
         durationLabel.font = .monospacedDigitSystemFont(ofSize: 12, weight: .medium)
 
-        fullscreenButton.setImage(UIImage(systemName: "arrow.up.left.and.arrow.down.right"), for: .normal)
+        fullscreenButton.setImage(UIImage(systemName: "rectangle.arrowtriangle.2.outward"), for: .normal)
         fullscreenButton.tintColor = .white
         fullscreenButton.addTarget(self, action: #selector(fullscreenAction), for: .touchUpInside)
 
-        let stack = UIStackView(arrangedSubviews: [
-            playPauseButton, castingButton, currentTimeLabel, progressSlider, durationLabel, fullscreenButton
-        ])
-        stack.axis = .horizontal
-        stack.alignment = .center
-        stack.spacing = 8
-        addSubview(stack)
+        addSubview(playPauseButton)
+        addSubview(castingButton)
+        addSubview(fullscreenButton)
+        addSubview(currentTimeLabel)
+        addSubview(progressSlider)
+        addSubview(durationLabel)
 
-        playPauseButton.snp.makeConstraints { $0.width.height.equalTo(44) }
-        castingButton.snp.makeConstraints { $0.width.height.equalTo(36) }
-        fullscreenButton.snp.makeConstraints { $0.width.height.equalTo(44) }
-        currentTimeLabel.snp.makeConstraints { $0.width.equalTo(42) }
-        durationLabel.snp.makeConstraints { $0.width.equalTo(42) }
-
-        stack.snp.makeConstraints { make in
-            make.top.equalToSuperview().offset(4)
-            make.leading.trailing.equalToSuperview().inset(12)
-            make.bottom.equalTo(safeAreaLayoutGuide).offset(-8)
+        volumeIcon.snp.makeConstraints { make in
+            make.leading.equalToSuperview().inset(12)
+            make.top.equalToSuperview().offset(6)
+            make.width.height.equalTo(22)
         }
+
+        volumeSlider.snp.makeConstraints { make in
+            make.leading.equalTo(volumeIcon.snp.trailing).offset(4)
+            make.trailing.equalToSuperview().inset(12)
+            make.centerY.equalTo(volumeIcon)
+        }
+
+        playPauseButton.snp.makeConstraints { make in
+            make.leading.equalToSuperview().inset(12)
+            make.top.equalTo(volumeIcon.snp.bottom).offset(4)
+            make.bottom.equalTo(safeAreaLayoutGuide).offset(-8)
+            make.width.height.equalTo(44)
+        }
+
+        castingButton.snp.makeConstraints { make in
+            make.leading.equalTo(playPauseButton.snp.trailing).offset(8)
+            make.centerY.equalTo(playPauseButton)
+            make.width.height.equalTo(36)
+        }
+
+        fullscreenButton.snp.makeConstraints { make in
+            make.leading.equalTo(castingButton.snp.trailing).offset(8)
+            make.centerY.equalTo(playPauseButton)
+            make.width.height.equalTo(44)
+        }
+
+        currentTimeLabel.snp.makeConstraints { make in
+            make.leading.equalTo(fullscreenButton.snp.trailing).offset(8)
+            make.centerY.equalTo(playPauseButton)
+            make.width.equalTo(42)
+        }
+
+        durationLabel.snp.makeConstraints { make in
+            make.trailing.equalToSuperview().inset(12)
+            make.centerY.equalTo(playPauseButton)
+            make.width.equalTo(42)
+        }
+
+        progressSlider.snp.makeConstraints { make in
+            make.leading.equalTo(currentTimeLabel.snp.trailing).offset(8)
+            make.trailing.equalTo(durationLabel.snp.leading).offset(-8)
+            make.centerY.equalTo(playPauseButton)
+        }
+    }
+
+    private func observeVolume() {
+        updateVolumeIcon()
+        volumeObserver = NotificationCenter.default.addObserver(
+            forName: NSNotification.Name(rawValue: "AVSystemController_SystemVolumeDidChangeNotification"),
+            object: nil, queue: .main
+        ) { [weak self] _ in
+            self?.updateVolumeIcon()
+        }
+    }
+
+    private func updateVolumeIcon() {
+        let vol = AVAudioSession.sharedInstance().outputVolume
+        let name: String
+        switch vol {
+        case 0:       name = "speaker.slash.fill"
+        case ..<0.33: name = "speaker.wave.1.fill"
+        case ..<0.66: name = "speaker.wave.2.fill"
+        default:      name = "speaker.wave.3.fill"
+        }
+        volumeIcon.image = UIImage(systemName: name)
     }
 
     func updateProgress(_ progress: Float, animated: Bool = true) {
@@ -98,7 +184,7 @@ final class PlayerControlBar: UIView {
     }
 
     func updateFullscreenButton(isFullscreen: Bool) {
-        let name = isFullscreen ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right"
+        let name = isFullscreen ? "rectangle.arrowtriangle.2.inward" : "rectangle.arrowtriangle.2.outward"
         fullscreenButton.setImage(UIImage(systemName: name), for: .normal)
     }
 
