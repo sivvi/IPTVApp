@@ -5,7 +5,9 @@ import Kingfisher
 final class ChannelCell: UITableViewCell {
     static let reuseIdentifier = "ChannelCell"
 
-    private let logoImageView = UIImageView()
+    private let previewContainer = UIView()
+    private let fallbackImageView = UIImageView()
+
     private let nameLabel = UILabel()
     private let programLabel = UILabel()
     private let favoriteIcon = UIImageView()
@@ -21,14 +23,25 @@ final class ChannelCell: UITableViewCell {
         fatalError("init(coder:) has not been implemented")
     }
 
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        fallbackImageView.kf.cancelDownloadTask()
+    }
+
+    // MARK: - Setup
+
     private func setupUI() {
         backgroundColor = .white
         selectionStyle = .none
 
-        logoImageView.contentMode = .scaleAspectFill
-        logoImageView.clipsToBounds = true
-        logoImageView.layer.cornerRadius = 8
-        logoImageView.backgroundColor = UIColor(hex: "#F1F2F6")
+        previewContainer.clipsToBounds = true
+        previewContainer.layer.cornerRadius = 8
+        previewContainer.backgroundColor = UIColor(hex: "#F1F2F6")
+
+        fallbackImageView.contentMode = .scaleAspectFill
+        fallbackImageView.clipsToBounds = true
+        previewContainer.addSubview(fallbackImageView)
+        fallbackImageView.snp.makeConstraints { $0.edges.equalToSuperview() }
 
         nameLabel.font = .systemFont(ofSize: 16, weight: .semibold)
         nameLabel.textColor = UIColor(hex: "#2D3436")
@@ -48,14 +61,14 @@ final class ChannelCell: UITableViewCell {
         healthLabel.textColor = UIColor(hex: "#B2BEC3")
         healthLabel.numberOfLines = 2
 
-        contentView.addSubview(logoImageView)
+        contentView.addSubview(previewContainer)
         contentView.addSubview(nameLabel)
         contentView.addSubview(programLabel)
         contentView.addSubview(favoriteIcon)
         contentView.addSubview(statusDot)
         contentView.addSubview(healthLabel)
 
-        logoImageView.snp.makeConstraints { make in
+        previewContainer.snp.makeConstraints { make in
             make.leading.equalToSuperview().offset(16)
             make.centerY.equalToSuperview()
             make.width.equalTo(80)
@@ -81,7 +94,7 @@ final class ChannelCell: UITableViewCell {
         }
 
         nameLabel.snp.makeConstraints { make in
-            make.leading.equalTo(logoImageView.snp.trailing).offset(12)
+            make.leading.equalTo(previewContainer.snp.trailing).offset(12)
             make.top.equalToSuperview().offset(14)
             make.trailing.equalTo(favoriteIcon.snp.leading).offset(-8)
         }
@@ -92,20 +105,43 @@ final class ChannelCell: UITableViewCell {
         }
     }
 
+    // MARK: - Configure
+
     func configure(channel: Channel, currentProgram: Program?, health: StreamHealth?) {
         nameLabel.text = channel.name
         programLabel.text = currentProgram?.title ?? "暂无节目信息"
         favoriteIcon.isHidden = !channel.isFavorite
 
-        // Health indicator
+        updateHealth(health)
+
+        if let health, health.isReachable, let thumbnailData = health.thumbnailData {
+            fallbackImageView.image = UIImage(data: thumbnailData)
+            fallbackImageView.contentMode = .scaleAspectFill
+            fallbackImageView.tintColor = nil
+        } else if let logoUrl = channel.logoUrl, let url = URL(string: logoUrl) {
+            fallbackImageView.kf.setImage(
+                with: url,
+                placeholder: UIImage(systemName: "tv"),
+                options: [.transition(.fade(0.2)), .cacheOriginalImage]
+            )
+            fallbackImageView.contentMode = .scaleAspectFit
+            fallbackImageView.tintColor = nil
+        } else {
+            fallbackImageView.image = UIImage(systemName: "tv")
+            fallbackImageView.contentMode = .scaleAspectFit
+            fallbackImageView.tintColor = UIColor(hex: "#B2BEC3")
+        }
+    }
+
+    func updateHealth(_ health: StreamHealth?) {
         if let health {
             switch health.healthLevel {
             case 2:
-                statusDot.backgroundColor = UIColor(hex: "#00B894") // green
+                statusDot.backgroundColor = UIColor(hex: "#00B894")
             case 1:
-                statusDot.backgroundColor = UIColor(hex: "#FDCB6E") // yellow
+                statusDot.backgroundColor = UIColor(hex: "#FDCB6E")
             default:
-                statusDot.backgroundColor = UIColor(hex: "#FF6B35") // red
+                statusDot.backgroundColor = UIColor(hex: "#FF6B35")
             }
 
             if let ms = health.pingMs {
@@ -126,21 +162,11 @@ final class ChannelCell: UITableViewCell {
             healthLabel.textColor = UIColor(hex: "#B2BEC3")
         }
 
-        // Thumbnail or logo
-        if let health, health.isReachable, let thumbnailData = health.thumbnailData {
-            logoImageView.image = UIImage(data: thumbnailData)
-            logoImageView.contentMode = .scaleAspectFill
-        } else if let logoUrl = channel.logoUrl, let url = URL(string: logoUrl) {
-            logoImageView.kf.setImage(
-                with: url,
-                placeholder: UIImage(systemName: "tv"),
-                options: [.transition(.fade(0.2)), .cacheOriginalImage]
-            )
-            logoImageView.contentMode = .scaleAspectFit
-        } else {
-            logoImageView.image = UIImage(systemName: "tv")
-            logoImageView.contentMode = .scaleAspectFit
-            logoImageView.tintColor = UIColor(hex: "#B2BEC3")
+        // Update thumbnail when health data arrives
+        if let health, health.isReachable, let data = health.thumbnailData {
+            fallbackImageView.image = UIImage(data: data)
+            fallbackImageView.contentMode = .scaleAspectFill
+            fallbackImageView.tintColor = nil
         }
     }
 }

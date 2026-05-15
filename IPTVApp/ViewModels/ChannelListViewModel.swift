@@ -154,8 +154,13 @@ final class ChannelListViewModel: BaseViewModel {
         streamHealth[channelId]
     }
 
-    func refreshStreamHealth() {
-        let channels = allChannels
+    func refreshStreamHealth(channelIds: [String]? = nil) {
+        let channels: [Channel]
+        if let ids = channelIds {
+            channels = allChannels.filter { ids.contains($0.id) }
+        } else {
+            channels = allChannels
+        }
         guard !channels.isEmpty else { return }
 
         let token = healthRefreshToken + 1
@@ -165,28 +170,44 @@ final class ChannelListViewModel: BaseViewModel {
         var results: [String: StreamHealth] = [:]
         let resultsLock = NSLock()
 
-        DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 1.5) { [weak self] in
-            guard let self, self.healthRefreshToken == token else { return }
-
-            for channel in channels {
-                guard let url = URL(string: channel.url) else { continue }
-                group.enter()
-                StreamHealthService.shared.checkHealth(channelId: channel.id, url: url) { health in
-                    resultsLock.lock()
-                    results[channel.id] = health
-                    resultsLock.unlock()
-                    group.leave()
-                }
-            }
-
-            group.notify(queue: .main) { [weak self] in
-                guard let self, self.healthRefreshToken == token else { return }
+        for channel in channels {
+            guard let url = URL(string: channel.url) else { continue }
+            group.enter()
+            StreamHealthService.shared.checkHealth(channelId: channel.id, url: url) { health in
                 resultsLock.lock()
-                let snapshot = results
+                results[channel.id] = health
                 resultsLock.unlock()
-                self.streamHealth.merge(snapshot) { _, new in new }
+                group.leave()
             }
         }
+
+        group.notify(queue: .main) { [weak self] in
+            guard let self, self.healthRefreshToken == token else { return }
+            resultsLock.lock()
+            let snapshot = results
+            resultsLock.unlock()
+            self.streamHealth.merge(snapshot) { _, new in new }
+        }
+    }
+
+    func startHealthCheck(for channelId: String) {
+        // Skip if checked within last 60 seconds
+        if let existing = streamHealth[channelId],
+           Date().timeIntervalSince(existing.checkedAt) < 60 {
+            return
+        }
+        guard let channel = allChannels.first(where: { $0.id == channelId }),
+              let url = URL(string: channel.url) else { return }
+
+        StreamHealthService.shared.checkHealth(channelId: channelId, url: url) { [weak self] health in
+            DispatchQueue.main.async {
+                self?.streamHealth[channelId] = health
+            }
+        }
+    }
+
+    func cancelHealthCheck(for channelId: String) {
+        StreamHealthService.shared.cancelHealthCheck(for: channelId)
     }
 
     // MARK: - Private

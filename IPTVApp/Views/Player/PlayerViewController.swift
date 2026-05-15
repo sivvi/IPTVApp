@@ -8,6 +8,7 @@ final class PlayerViewController: UIViewController, UIGestureRecognizerDelegate 
     private let playerView = PlayerView()
     private let controlBar = PlayerControlBar()
     private let closeButton = UIButton(type: .system)
+    private let pipButton = UIButton(type: .system)
     private let bufferingIndicator = UIActivityIndicatorView(style: .large)
     private let errorOverlay = UIView()
     private let nowPlayingView = EPGNowPlayingView()
@@ -18,8 +19,22 @@ final class PlayerViewController: UIViewController, UIGestureRecognizerDelegate 
     private var playerTopConstraint: Constraint?
     private var cancellables = Set<AnyCancellable>()
 
+    /// Non-nil when resuming from floating window — renderer view and service already exist.
+    private let floatingRenderer: UIView?
+    private let floatingService: PlayerServiceProtocol?
+
     init(channel: Channel) {
         self.viewModel = PlayerViewModel(channel: channel)
+        self.floatingRenderer = nil
+        self.floatingService = nil
+        super.init(nibName: nil, bundle: nil)
+        modalPresentationStyle = .fullScreen
+    }
+
+    init(channel: Channel, renderer: UIView?, service: PlayerServiceProtocol) {
+        self.viewModel = PlayerViewModel(channel: channel)
+        self.floatingRenderer = renderer
+        self.floatingService = service
         super.init(nibName: nil, bundle: nil)
         modalPresentationStyle = .fullScreen
     }
@@ -37,7 +52,11 @@ final class PlayerViewController: UIViewController, UIGestureRecognizerDelegate 
         setupBindings()
         setupControlBarCallbacks()
         setupPlayerViewCallbacks()
-        viewModel.startPlayback()
+        if let renderer = floatingRenderer {
+            playerView.attachRenderer(renderer)
+        } else {
+            viewModel.startPlayback()
+        }
     }
 
     override func viewDidAppear(_ animated: Bool) {
@@ -87,8 +106,10 @@ final class PlayerViewController: UIViewController, UIGestureRecognizerDelegate 
     private func setupViews() {
         view.addSubview(playerView)
 
-        if let avService = viewModel.playerService as? AVPlayerService {
-            playerView.playerLayer.player = avService.player
+        if let renderer = floatingRenderer {
+            // Already attached in viewDidLoad, skip default AV setup
+        } else if let avService = viewModel.playerService as? AVPlayerService {
+            playerView.attachAVPlayer(avService.player)
         }
 
         closeButton.setImage(UIImage(systemName: "xmark"), for: .normal)
@@ -97,6 +118,13 @@ final class PlayerViewController: UIViewController, UIGestureRecognizerDelegate 
         closeButton.layer.cornerRadius = 16
         closeButton.addTarget(self, action: #selector(closeTapped), for: .touchUpInside)
         view.addSubview(closeButton)
+
+        pipButton.setImage(UIImage(systemName: "pip.enter"), for: .normal)
+        pipButton.tintColor = .white
+        pipButton.backgroundColor = UIColor.black.withAlphaComponent(0.5)
+        pipButton.layer.cornerRadius = 16
+        pipButton.addTarget(self, action: #selector(pipTapped), for: .touchUpInside)
+        view.addSubview(pipButton)
 
         controlBar.alpha = 0
         view.addSubview(controlBar)
@@ -206,6 +234,12 @@ final class PlayerViewController: UIViewController, UIGestureRecognizerDelegate 
             make.width.height.equalTo(32)
         }
 
+        pipButton.snp.remakeConstraints { make in
+            make.top.equalTo(playerView).offset(12)
+            make.trailing.equalTo(playerView).offset(-12)
+            make.width.height.equalTo(32)
+        }
+
         controlBar.snp.remakeConstraints { make in
             make.leading.trailing.bottom.equalToSuperview()
         }
@@ -219,6 +253,12 @@ final class PlayerViewController: UIViewController, UIGestureRecognizerDelegate 
         }
 
         closeButton.snp.remakeConstraints { make in
+            make.top.equalTo(view.safeAreaLayoutGuide).offset(8)
+            make.leading.equalToSuperview().offset(16)
+            make.width.height.equalTo(32)
+        }
+
+        pipButton.snp.remakeConstraints { make in
             make.top.equalTo(view.safeAreaLayoutGuide).offset(8)
             make.trailing.equalToSuperview().offset(-16)
             make.width.height.equalTo(32)
@@ -326,6 +366,24 @@ final class PlayerViewController: UIViewController, UIGestureRecognizerDelegate 
                 self?.controlBar.updateCastingButton(isCasting: name != nil, deviceName: name)
             }
             .store(in: &cancellables)
+
+        viewModel.isUsingIJK
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] usingIJK in
+                guard let self else { return }
+                if !usingIJK {
+                    self.playerView.attachAVPlayer(self.viewModel.avPlayerService.player)
+                }
+            }
+            .store(in: &cancellables)
+
+        viewModel.ijkRenderView
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] renderView in
+                guard let self, let renderView else { return }
+                self.playerView.attachExternalPlayer(renderView)
+            }
+            .store(in: &cancellables)
     }
 
     private func setupControlBarCallbacks() {
@@ -402,8 +460,9 @@ final class PlayerViewController: UIViewController, UIGestureRecognizerDelegate 
     @objc private func viewTapped(_ gesture: UITapGestureRecognizer) {
         guard !viewModel.isControlBarVisible.value else { return }
         let location = gesture.location(in: view)
-        // Don't intercept taps on the close button or control bar area
+        // Don't intercept taps on the close button, PiP button, or control bar area
         if closeButton.frame.contains(location) { return }
+        if pipButton.frame.contains(location) { return }
         viewModel.toggleControlBarVisibility()
     }
 
@@ -427,6 +486,23 @@ final class PlayerViewController: UIViewController, UIGestureRecognizerDelegate 
     @objc private func retryTapped() {
         errorOverlay.isHidden = true
         viewModel.startPlayback()
+    }
+
+    @objc private func pipTapped() {
+        guard !viewModel.isCasting.value else { return }
+
+        // Get the video renderer view
+        guard let rendererView = playerView.detachRenderer() else { return }
+
+        // Enter floating mode — keeps player running
+        let service = viewModel.activePlayerService
+        FloatingPlayerManager.shared.enterFloatingMode(
+            playerService: service,
+            videoView: rendererView,
+            channel: viewModel.channel
+        )
+
+        dismiss(animated: true)
     }
 
     private func presentDevicePicker() {

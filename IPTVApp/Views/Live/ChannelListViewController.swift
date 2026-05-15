@@ -17,10 +17,6 @@ final class ChannelListViewController: BaseViewController<ChannelListViewModel> 
         setupBindings()
         viewModel.loadChannels()
         viewModel.loadPlaylists()
-        // Defer health checks so UI settles first (keyboard, initial render)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-            self?.viewModel.refreshStreamHealth()
-        }
     }
 
     private func setupNavigationBar() {
@@ -85,7 +81,15 @@ final class ChannelListViewController: BaseViewController<ChannelListViewModel> 
         viewModel.$streamHealth
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
-                self?.tableView.reloadData()
+                guard let self else { return }
+                let groups = viewModel.groupedChannels
+                for indexPath in tableView.indexPathsForVisibleRows ?? [] {
+                    guard indexPath.section < groups.count,
+                          indexPath.row < groups[indexPath.section].channels.count,
+                          let cell = tableView.cellForRow(at: indexPath) as? ChannelCell else { continue }
+                    let channel = groups[indexPath.section].channels[indexPath.row]
+                    cell.updateHealth(viewModel.health(for: channel.id))
+                }
             }
             .store(in: &viewModel.cancellables)
 
@@ -178,5 +182,22 @@ extension ChannelListViewController: UITableViewDelegate {
         let channel = viewModel.groupedChannels[indexPath.section].channels[indexPath.row]
         let playerVC = PlayerViewController(channel: channel)
         present(playerVC, animated: true)
+    }
+
+    func tableView(_ tableView: UITableView, willDisplay cell: UITableViewCell, forRowAt indexPath: IndexPath) {
+        let groups = viewModel.groupedChannels
+        guard indexPath.section < groups.count,
+              indexPath.row < groups[indexPath.section].channels.count else { return }
+        let channel = groups[indexPath.section].channels[indexPath.row]
+        viewModel.startHealthCheck(for: channel.id)
+    }
+
+    func tableView(_ tableView: UITableView, didEndDisplaying cell: UITableViewCell, forRowAt indexPath: IndexPath) {
+        // indexPath may be stale after reloadData — bounds-check against current data
+        let groups = viewModel.groupedChannels
+        guard indexPath.section < groups.count,
+              indexPath.row < groups[indexPath.section].channels.count else { return }
+        let channel = groups[indexPath.section].channels[indexPath.row]
+        viewModel.cancelHealthCheck(for: channel.id)
     }
 }

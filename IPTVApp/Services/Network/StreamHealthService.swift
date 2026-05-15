@@ -1,11 +1,13 @@
 import Foundation
 import AVKit
+import CoreImage
 
 final class StreamHealthService {
 
     static let shared = StreamHealthService()
 
     private let thumbnailCache = NSCache<NSString, NSData>()
+    private var pendingOperations: [String: Operation] = [:]
 
     private let healthQueue: OperationQueue = {
         let q = OperationQueue()
@@ -22,7 +24,9 @@ final class StreamHealthService {
     /// Completion is called exactly once with all available data.
     func checkHealth(channelId: String, url: URL,
                      completion: @escaping (StreamHealth) -> Void) {
-        healthQueue.addOperation { [weak self] in
+        var op: BlockOperation!
+        op = BlockOperation { [weak self] in
+            guard !op.isCancelled else { return }
             // 1. HTTP HEAD probe
             let probeGroup = DispatchGroup()
             var probeResult: PingService.ProbeResult?
@@ -34,6 +38,7 @@ final class StreamHealthService {
             }
             _ = probeGroup.wait(timeout: .now() + 5)
 
+            if op.isCancelled { return }
             let result = probeResult ?? PingService.ProbeResult(latencyMs: nil, contentType: nil)
 
             // 2. Check thumbnail cache
@@ -44,8 +49,11 @@ final class StreamHealthService {
 
             // 3. Generate thumbnail inline if reachable and not cached
             if result.latencyMs != nil, thumbnailData == nil {
+                if op.isCancelled { return }
                 thumbnailData = self?.captureThumbnail(url: url, channelId: channelId)
             }
+
+            if op.isCancelled { return }
 
             // 4. Single completion with all data
             let health = StreamHealth(
@@ -58,39 +66,45 @@ final class StreamHealthService {
             )
             completion(health)
         }
+        pendingOperations[channelId] = op
+        op.completionBlock = { [weak self] in
+            self?.pendingOperations.removeValue(forKey: channelId)
+        }
+        healthQueue.addOperation(op)
+    }
+
+    func cancelHealthCheck(for channelId: String) {
+        pendingOperations[channelId]?.cancel()
+        pendingOperations.removeValue(forKey: channelId)
     }
 
     // MARK: - Thumbnail
 
-    /// Captures a frame from the stream. For HLS (.m3u8), downloads the playlist first to find
-    /// a direct TS segment URL, then generates an image from that segment.
+    /// Captures a frame from the stream. For HLS, uses a short-lived AVPlayer session
+    /// (up to 10s muted playback) to grab a decoded frame. For non-HLS, uses AVAssetImageGenerator.
     private func captureThumbnail(url: URL, channelId: String) -> Data? {
-        // Try direct capture first (works for direct TS/MP4 links)
-        if let data = captureFromAsset(url: url, channelId: channelId) {
-            return data
-        }
-
-        // If the URL looks like HLS, try downloading the playlist and grabbing the first segment
         let path = url.lastPathComponent.lowercased()
-        if path.hasSuffix(".m3u8") || path.hasSuffix("m3u") || path.contains("m3u8") {
-            return captureFromHLSSegment(playlistURL: url, channelId: channelId)
+        let isHLS = path.hasSuffix(".m3u8") || path.hasSuffix("m3u") || path.contains("m3u8")
+
+        if isHLS {
+            return captureViaPlayer(url: url, channelId: channelId)
         }
 
-        return nil
+        return captureFromAsset(url: url, channelId: channelId, timeout: 3)
     }
 
-    private func captureFromAsset(url: URL, channelId: String) -> Data? {
+    private func captureFromAsset(url: URL, channelId: String, timeout: Int = 3) -> Data? {
         let asset = AVURLAsset(url: url)
-        let loadGroup = DispatchGroup()
-        var hasVideo = false
+        let trackKey = "tracks"
 
-        loadGroup.enter()
-        asset.loadValuesAsynchronously(forKeys: ["tracks", "playable"]) {
+        let semaphore = DispatchSemaphore(value: 0)
+        var hasVideo = false
+        asset.loadValuesAsynchronously(forKeys: [trackKey]) {
             hasVideo = (asset.tracks(withMediaType: .video).first != nil)
-            loadGroup.leave()
+            semaphore.signal()
         }
 
-        guard loadGroup.wait(timeout: .now() + 4) == .success, hasVideo else { return nil }
+        guard semaphore.wait(timeout: .now() + .seconds(timeout)) == .success, hasVideo else { return nil }
 
         let generator = AVAssetImageGenerator(asset: asset)
         generator.appliesPreferredTrackTransform = true
@@ -102,38 +116,43 @@ final class StreamHealthService {
         return encodeAndCache(cgImage, channelId: channelId)
     }
 
-    private func captureFromHLSSegment(playlistURL: URL, channelId: String) -> Data? {
-        // Download the M3U8 playlist
-        let playlistGroup = DispatchGroup()
-        var playlistData: Data?
+    /// Plays a muted AVPlayer for up to 10 seconds, captures the first decoded video frame
+    /// via AVPlayerItemVideoOutput, then stops. Returns JPEG data or nil on timeout/failure.
+    private func captureViaPlayer(url: URL, channelId: String) -> Data? {
+        let player = AVPlayer()
+        player.isMuted = true
+        player.volume = 0
 
-        playlistGroup.enter()
-        URLSession.shared.dataTask(with: playlistURL) { data, _, _ in
-            playlistData = data
-            playlistGroup.leave()
-        }.resume()
+        let item = AVPlayerItem(url: url)
+        let output = AVPlayerItemVideoOutput(pixelBufferAttributes: [
+            kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA,
+            kCVPixelBufferWidthKey as String: 160,
+            kCVPixelBufferHeightKey as String: 90
+        ])
+        item.add(output)
 
-        guard playlistGroup.wait(timeout: .now() + 4) == .success,
-              let data = playlistData,
-              let text = String(data: data, encoding: .utf8) else { return nil }
+        player.replaceCurrentItem(with: item)
+        player.play()
 
-        // Find the first media segment URL (non-comment line after #EXTINF)
-        let lines = text.components(separatedBy: .newlines)
-        var foundExtinf = false
-        for line in lines {
-            let trimmed = line.trimmingCharacters(in: .whitespaces)
-            if trimmed.hasPrefix("#EXTINF:") {
-                foundExtinf = true
-            } else if foundExtinf, !trimmed.isEmpty, !trimmed.hasPrefix("#") {
-                // Resolve relative URL
-                guard let segmentURL = URL(string: trimmed, relativeTo: playlistURL)?.absoluteURL else {
-                    foundExtinf = false
-                    continue
-                }
-                return captureFromAsset(url: segmentURL, channelId: channelId)
-            }
+        let deadline = Date().addingTimeInterval(10)
+        while Date() < deadline {
+            Thread.sleep(forTimeInterval: 0.3)
+            let time = item.currentTime()
+            guard time.isValid else { continue }
+            guard output.hasNewPixelBuffer(forItemTime: time) else { continue }
+            guard let buffer = output.copyPixelBuffer(forItemTime: time, itemTimeForDisplay: nil) else { continue }
+
+            player.pause()
+            player.replaceCurrentItem(with: nil)
+
+            let ciImage = CIImage(cvPixelBuffer: buffer)
+            let context = CIContext()
+            guard let cgImage = context.createCGImage(ciImage, from: ciImage.extent) else { break }
+            return encodeAndCache(cgImage, channelId: channelId)
         }
 
+        player.pause()
+        player.replaceCurrentItem(with: nil)
         return nil
     }
 

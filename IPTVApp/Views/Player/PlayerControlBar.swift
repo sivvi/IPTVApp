@@ -43,21 +43,6 @@ final class PlayerControlBar: UIView {
         layer.cornerRadius = 12
         layer.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner]
 
-        // Volume row
-        volumeIcon.tintColor = .white
-        volumeIcon.contentMode = .scaleAspectFit
-        updateVolumeIcon()
-        addSubview(volumeIcon)
-
-        volumeSlider.showsRouteButton = false
-        volumeSlider.tintColor = UIColor(hex: "#FF6B35")
-        volumeSlider.setVolumeThumbImage(makeThumb(size: 12), for: .normal)
-        if let slider = volumeSlider.subviews.first(where: { $0 is UISlider }) as? UISlider {
-            slider.minimumTrackTintColor = UIColor(hex: "#FF6B35")
-            slider.maximumTrackTintColor = UIColor.white.withAlphaComponent(0.3)
-        }
-        addSubview(volumeSlider)
-
         // Playback row
         playPauseButton.setImage(UIImage(systemName: "play.fill"), for: .normal)
         playPauseButton.tintColor = .white
@@ -87,6 +72,21 @@ final class PlayerControlBar: UIView {
         fullscreenButton.tintColor = .white
         fullscreenButton.addTarget(self, action: #selector(fullscreenAction), for: .touchUpInside)
 
+        // Volume in-row
+        volumeIcon.tintColor = .white
+        volumeIcon.contentMode = .scaleAspectFit
+        updateVolumeIcon()
+        addSubview(volumeIcon)
+
+        volumeSlider.showsRouteButton = false
+        volumeSlider.tintColor = UIColor(hex: "#FF6B35")
+        volumeSlider.setVolumeThumbImage(makeThumb(size: 12), for: .normal)
+        if let slider = volumeSlider.subviews.first(where: { $0 is UISlider }) as? UISlider {
+            slider.minimumTrackTintColor = UIColor(hex: "#FF6B35")
+            slider.maximumTrackTintColor = UIColor.white.withAlphaComponent(0.3)
+        }
+        addSubview(volumeSlider)
+
         addSubview(playPauseButton)
         addSubview(castingButton)
         addSubview(fullscreenButton)
@@ -94,21 +94,9 @@ final class PlayerControlBar: UIView {
         addSubview(progressSlider)
         addSubview(durationLabel)
 
-        volumeIcon.snp.makeConstraints { make in
-            make.leading.equalToSuperview().inset(12)
-            make.top.equalToSuperview().offset(6)
-            make.width.height.equalTo(22)
-        }
-
-        volumeSlider.snp.makeConstraints { make in
-            make.leading.equalTo(volumeIcon.snp.trailing).offset(4)
-            make.trailing.equalToSuperview().inset(12)
-            make.centerY.equalTo(volumeIcon)
-        }
-
         playPauseButton.snp.makeConstraints { make in
             make.leading.equalToSuperview().inset(12)
-            make.top.equalTo(volumeIcon.snp.bottom).offset(4)
+            make.top.equalToSuperview().offset(8)
             make.bottom.equalTo(safeAreaLayoutGuide).offset(-8)
             make.width.height.equalTo(44)
         }
@@ -132,9 +120,21 @@ final class PlayerControlBar: UIView {
         }
 
         durationLabel.snp.makeConstraints { make in
-            make.trailing.equalToSuperview().inset(12)
+            make.trailing.equalTo(volumeIcon.snp.leading).offset(-4)
             make.centerY.equalTo(playPauseButton)
             make.width.equalTo(42)
+        }
+
+        volumeIcon.snp.makeConstraints { make in
+            make.trailing.equalTo(volumeSlider.snp.leading).offset(-2)
+            make.centerY.equalTo(playPauseButton)
+            make.width.height.equalTo(20)
+        }
+
+        volumeSlider.snp.makeConstraints { make in
+            make.trailing.equalToSuperview().inset(12)
+            make.centerY.equalTo(playPauseButton)
+            make.width.equalTo(70)
         }
 
         progressSlider.snp.makeConstraints { make in

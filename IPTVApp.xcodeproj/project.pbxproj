@@ -64,6 +64,8 @@
 		D8C3B5B9B4F14155204B4463 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2802EB9C788D59636D3A246D /* Constants.swift */; };
 		D8FB2F91443F1F2866AA603D /* ChannelListViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFB610E14721D3A126491592 /* ChannelListViewModel.swift */; };
 		DA79943DCE9070EEB64F576E /* PlayerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DDBC57390037D291668362B /* PlayerViewController.swift */; };
+		6635A8D13B9740E0953D5644 /* FloatingPlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83AEBA16587D4A009FBEE781 /* FloatingPlayerView.swift */; };
+		8B2CF3748A044FF29C1A61FE /* FloatingPlayerManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0E33E6BDC704DF685AEBFC9 /* FloatingPlayerManager.swift */; };
 		DB4B33BF247C541E97EBFDDF /* DatabaseManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DE1AF53317C8BCC8D908E99 /* DatabaseManagerTests.swift */; };
 		E877D8ECFD0BB7F76586C9A1 /* DevicePickerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97DFE1FAED81FDD210031235 /* DevicePickerViewController.swift */; };
 		EAA24576D020135BB21AC644 /* M3UParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B129A9868D689EAB3F993E1 /* M3UParser.swift */; };
@@ -72,6 +74,9 @@
 		F47DD87004F4ECF254CA5BAF /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = E223B8CDA9B1A8D7F87E1D91 /* AppDelegate.swift */; };
 		F92F5C1368BFD4DFD3FA48EC /* PlaylistParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21163450AA0D61FA977CFA76 /* PlaylistParser.swift */; };
 		F9926BDAE32C115BB8A7BF49 /* BaseViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16504F8A797AE8F33B4C820F /* BaseViewController.swift */; };
+		B5C6D7E8F9A0B1C2D3E4F5A6B7 /* IJKPlayerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5B6C7D8E9F0A1B2C3D4E5F6A7 /* IJKPlayerService.swift */; };
+		FB4A42BF130E069006A8607B /* IJKMediaFramework.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8ED0C14078B3BABF9A0BE11F /* IJKMediaFramework.xcframework */; };
+		0C58DF5B5A2DB5122268900F /* IJKMediaFramework.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 8ED0C14078B3BABF9A0BE11F /* IJKMediaFramework.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -135,6 +140,7 @@
 		9985B3F1FE1EE16159EEEAEE /* ChannelCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChannelCell.swift; sourceTree = "<group>"; };
 		9F76D61A327B298555D3CA20 /* FavoritesViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoritesViewModel.swift; sourceTree = "<group>"; };
 		A8BFA866E835912B25D7EA90 /* PlayerControlBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerControlBar.swift; sourceTree = "<group>"; };
+		83AEBA16587D4A009FBEE781 /* FloatingPlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingPlayerView.swift; sourceTree = "<group>"; };
 		B2A52CA5FA1D37C3BA6D987E /* CastingServiceProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CastingServiceProtocol.swift; sourceTree = "<group>"; };
 		BBBF05BAEB8FF390E2DF8A55 /* EPGNowPlayingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EPGNowPlayingView.swift; sourceTree = "<group>"; };
 		C554AC027DF4194D3CA8AA91 /* PlaylistDownloader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaylistDownloader.swift; sourceTree = "<group>"; };
@@ -150,6 +156,9 @@
 		F4F455C339C5FEF61B3558B9 /* EmptyStateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptyStateView.swift; sourceTree = "<group>"; };
 		F58FE8E738B8BF87C57B4F47 /* NetworkMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkMonitor.swift; sourceTree = "<group>"; };
 		FA49FF3AB7CED06069DD5F87 /* EPGParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EPGParser.swift; sourceTree = "<group>"; };
+		A5B6C7D8E9F0A1B2C3D4E5F6A7 /* IJKPlayerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IJKPlayerService.swift; sourceTree = "<group>"; };
+		F0E33E6BDC704DF685AEBFC9 /* FloatingPlayerManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingPlayerManager.swift; sourceTree = "<group>"; };
+		8ED0C14078B3BABF9A0BE11F /* IJKMediaFramework.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = IJKMediaFramework.xcframework; path = Frameworks/IJKMediaFramework.xcframework; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -160,6 +169,7 @@
 				27D91860BF6135CF89207D44 /* SnapKit in Frameworks */,
 				BE742D499B7EC7B5854E9307 /* Kingfisher in Frameworks */,
 				3ECB3ADEF68760E7936AB1DB /* GRDB in Frameworks */,
+				FB4A42BF130E069006A8607B /* IJKMediaFramework.xcframework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -193,6 +203,7 @@
 			isa = PBXGroup;
 			children = (
 				80A6E16F031A54C539C80FFE /* IPTVApp */,
+				715C8027212D233EF2E9176C /* Frameworks */,
 				F8B18AB5FA718F6949716DA8 /* IPTVAppTests */,
 				70349C34E25F34E0882A1510 /* Products */,
 			);
@@ -215,6 +226,7 @@
 				A8BFA866E835912B25D7EA90 /* PlayerControlBar.swift */,
 				7554469A3B98E0A2494E9E25 /* PlayerView.swift */,
 				7DDBC57390037D291668362B /* PlayerViewController.swift */,
+				83AEBA16587D4A009FBEE781 /* FloatingPlayerView.swift */,
 			);
 			path = Player;
 			sourceTree = "<group>";
@@ -298,6 +310,8 @@
 				DFF45B0F4094E3640AEAA111 /* PlayerError.swift */,
 				8771DD390EEEFB0448AEBC29 /* PlayerServiceProtocol.swift */,
 				9038714FB3115BBC5DCE945F /* PlayerState.swift */,
+				A5B6C7D8E9F0A1B2C3D4E5F6A7 /* IJKPlayerService.swift */,
+				F0E33E6BDC704DF685AEBFC9 /* FloatingPlayerManager.swift */,
 			);
 			path = Player;
 			sourceTree = "<group>";
@@ -447,6 +461,7 @@
 				EFAF1D4239FD388F98B02503 /* SwiftLint */,
 				64A673867681B884E52D8E8C /* Sources */,
 				506D204AB34B47EA1EF0DBFC /* Frameworks */,
+				C03C8429F2CC1E9AC093A405 /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
@@ -587,6 +602,7 @@
 				6E8559E7370BF79AE1E5B065 /* PlayerState.swift in Sources */,
 				597B40C4E533992F38D37689 /* PlayerView.swift in Sources */,
 				DA79943DCE9070EEB64F576E /* PlayerViewController.swift in Sources */,
+				6635A8D13B9740E0953D5644 /* FloatingPlayerView.swift in Sources */,
 				6CAA9B185E0C00C81765D99C /* PlayerViewModel.swift in Sources */,
 				04E21315013A4DD4D457B42F /* Playlist.swift in Sources */,
 				8F3A4E79FB2B4AE2AB905E92 /* PlaylistDownloader.swift in Sources */,
@@ -599,6 +615,8 @@
 				2308BC382118883FC718E955 /* UIColor+Hex.swift in Sources */,
 				8759263399DEE814863CA36D /* ViewModelProtocol.swift in Sources */,
 				434AC66D4F5F1F658B547056 /* XMLTVParser.swift in Sources */,
+				B5C6D7E8F9A0B1C2D3E4F5A6B7 /* IJKPlayerService.swift in Sources */,
+				8B2CF3748A044FF29C1A61FE /* FloatingPlayerManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -613,6 +631,19 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		C03C8429F2CC1E9AC093A405 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				0C58DF5B5A2DB5122268900F /* IJKMediaFramework.xcframework in Embed Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
 		6181D9D9634D5C31F380BFFE /* PBXTargetDependency */ = {
@@ -664,11 +695,24 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				DEVELOPMENT_TEAM = 6N6GM9UKKZ;
 				INFOPLIST_FILE = IPTVApp/Resources/Info.plist;
+				SWIFT_OBJC_BRIDGING_HEADER = IPTVApp/Resources/IPTVApp-Bridging-Header.h;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/Frameworks",
+				);
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				OTHER_LINKER_FLAGS = "-ObjC";
+				OTHER_LINKER_FLAGS = (
+					"-ObjC",
+					"-lz",
+					"-liconv",
+					"-lxml2",
+					"-lbz2",
+					"-lc++",
+					"-llzma",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.iptvapp.app;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -746,11 +790,24 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				DEVELOPMENT_TEAM = 6N6GM9UKKZ;
 				INFOPLIST_FILE = IPTVApp/Resources/Info.plist;
+				SWIFT_OBJC_BRIDGING_HEADER = IPTVApp/Resources/IPTVApp-Bridging-Header.h;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/Frameworks",
+				);
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				OTHER_LINKER_FLAGS = "-ObjC";
+				OTHER_LINKER_FLAGS = (
+					"-ObjC",
+					"-lz",
+					"-liconv",
+					"-lxml2",
+					"-lbz2",
+					"-lc++",
+					"-llzma",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.iptvapp.app;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";

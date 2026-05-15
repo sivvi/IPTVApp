@@ -2,6 +2,7 @@ import Foundation
 import Combine
 import UIKit
 import AVFAudio
+import AVKit
 
 final class PlayerViewModel: BaseViewModel {
 
@@ -23,13 +24,22 @@ final class PlayerViewModel: BaseViewModel {
     let isCasting = CurrentValueSubject<Bool, Never>(false)
     let castingDeviceName = CurrentValueSubject<String?, Never>(nil)
 
-    private let avPlayerService: AVPlayerService
+    // IJK fallback
+    let isUsingIJK = CurrentValueSubject<Bool, Never>(false)
+    let ijkRenderView = CurrentValueSubject<UIView?, Never>(nil)
+    private lazy var ijkPlayerService = IJKPlayerService()
+
+    let avPlayerService: AVPlayerService
     private let dlnaCastingService = DLNACastingService()
     private var activeService: PlayerServiceProtocol
+    var activePlayerService: PlayerServiceProtocol { activeService }
 
     private var retryCount = 0
+    private var retryWorkItem: DispatchWorkItem?
     private var autoHideWorkItem: DispatchWorkItem?
     private var networkCancellable: AnyCancellable?
+    private var serviceCancellables = Set<AnyCancellable>()
+    private var codecCheckWorkItem: DispatchWorkItem?
 
     init(channel: Channel, playerService: PlayerServiceProtocol = AVPlayerService()) {
         self.channel = channel
@@ -53,6 +63,12 @@ final class PlayerViewModel: BaseViewModel {
         }
         Logger.player.info("开始播放: \(self.channel.name)")
         retryCount = 0
+        isUsingIJK.send(false)
+        ijkRenderView.send(nil)
+        codecCheckWorkItem?.cancel()
+        ijkPlayerService.stop()
+        bindToService(avPlayerService)
+        activeService = avPlayerService
         activeService.play(url: url)
     }
 
@@ -162,20 +178,22 @@ final class PlayerViewModel: BaseViewModel {
     // MARK: - Private
 
     private func bindToService(_ service: PlayerServiceProtocol) {
+        serviceCancellables.removeAll()
+
         service.state
             .receive(on: DispatchQueue.main)
             .sink { [weak self] state in
                 self?.playerState.send(state)
                 self?.handleStateChange(state)
             }
-            .store(in: &cancellables)
+            .store(in: &serviceCancellables)
 
         service.currentTime
             .receive(on: DispatchQueue.main)
             .sink { [weak self] time in
                 self?.currentTimeText.send(Self.formatTime(time))
             }
-            .store(in: &cancellables)
+            .store(in: &serviceCancellables)
 
         service.duration
             .receive(on: DispatchQueue.main)
@@ -184,7 +202,7 @@ final class PlayerViewModel: BaseViewModel {
                 self?.isLiveStream.send(isLive)
                 self?.durationText.send(isLive ? "直播" : Self.formatTime(dur))
             }
-            .store(in: &cancellables)
+            .store(in: &serviceCancellables)
 
         Publishers.CombineLatest(
             service.currentTime,
@@ -199,12 +217,12 @@ final class PlayerViewModel: BaseViewModel {
             guard self?.isSeeking.value == false else { return }
             self?.progress.send(p)
         }
-        .store(in: &cancellables)
+        .store(in: &serviceCancellables)
 
         service.isBuffering
             .receive(on: DispatchQueue.main)
             .sink { [weak self] in self?.isPlayerBuffering.send($0) }
-            .store(in: &cancellables)
+            .store(in: &serviceCancellables)
     }
 
     private func setupCastingBindings() {
@@ -222,22 +240,64 @@ final class PlayerViewModel: BaseViewModel {
         switch state {
         case .playing:
             retryCount = 0
+            retryWorkItem?.cancel()
+            retryWorkItem = nil
+            codecCheckWorkItem?.cancel()
             resetAutoHideTimer()
+            scheduleCodecCheck()
         case .failed:
-            if !isCasting.value, retryCount < Constants.maxRetryCount {
-                retryCount += 1
-                let delay = min(pow(2.0, Double(retryCount)), 8.0)
-                Logger.player.info("播放失败, \(Int(delay))秒后重试(\(self.retryCount)/\(Constants.maxRetryCount))")
-                DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
-                    guard let self, let url = URL(string: self.channel.url) else { return }
-                    self.activeService.play(url: url)
-                }
+            guard !isCasting.value, retryCount < Constants.maxRetryCount else { return }
+            retryCount += 1
+            let delay = min(pow(2.0, Double(retryCount)), 8.0)
+            Logger.player.info("播放失败, \(Int(delay))秒后重试(\(self.retryCount)/\(Constants.maxRetryCount))")
+            retryWorkItem?.cancel()
+            let workItem = DispatchWorkItem { [weak self] in
+                guard let self, let url = URL(string: self.channel.url) else { return }
+                self.activeService.play(url: url)
             }
+            retryWorkItem = workItem
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: workItem)
         case .stopped:
             autoHideWorkItem?.cancel()
+            codecCheckWorkItem?.cancel()
         default:
             break
         }
+    }
+
+    private func scheduleCodecCheck() {
+        guard !isUsingIJK.value, let avService = activeService as? AVPlayerService else { return }
+        codecCheckWorkItem?.cancel()
+        let workItem = DispatchWorkItem { [weak self] in
+            guard let self,
+                  !self.isUsingIJK.value,
+                  let item = avService.player.currentItem,
+                  item.status == .readyToPlay
+            else { return }
+            let size = item.presentationSize
+            if size == .zero, let url = URL(string: self.channel.url) {
+                Logger.player.warning("检测到视频编码不支持(presentationSize=zero), 切换到IJK")
+                self.switchToIJK(url: url)
+            }
+        }
+        codecCheckWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5, execute: workItem)
+    }
+
+    private func switchToIJK(url: URL) {
+        avPlayerService.pause()
+        activeService.stop()
+
+        ijkPlayerService.play(url: url)
+        isUsingIJK.send(true)
+        // Render view becomes available after prepareToPlay; poll briefly
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+            guard let self, self.isUsingIJK.value, let v = self.ijkPlayerService.view else { return }
+            self.ijkRenderView.send(v)
+        }
+
+        bindToService(ijkPlayerService)
+        activeService = ijkPlayerService
     }
 
     private func setupNetworkWarning() {

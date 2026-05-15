@@ -14,8 +14,77 @@ final class PlayerView: UIView {
     var currentProgress: Float = 0
     var isCastingMode: Bool = false
 
-    override class var layerClass: AnyClass { AVPlayerLayer.self }
-    var playerLayer: AVPlayerLayer { layer as! AVPlayerLayer }
+    // MARK: - Renderers
+
+    private let rendererContainer = UIView()
+
+    private var avLayerView: AVPlayerLayerView = {
+        let v = AVPlayerLayerView()
+        v.isUserInteractionEnabled = false
+        return v
+    }()
+
+    private var externalVideoView: UIView? {
+        didSet { externalVideoView?.isUserInteractionEnabled = false }
+    }
+
+    var playerLayer: AVPlayerLayer { avLayerView.playerLayer }
+
+    func attachAVPlayer(_ player: AVPlayer) {
+        externalVideoView?.removeFromSuperview()
+        externalVideoView = nil
+        avLayerView.playerLayer.player = player
+        if avLayerView.superview == nil {
+            rendererContainer.addSubview(avLayerView)
+            avLayerView.snp.remakeConstraints { $0.edges.equalToSuperview() }
+        }
+    }
+
+    func attachExternalPlayer(_ videoView: UIView) {
+        avLayerView.playerLayer.player = nil
+        avLayerView.removeFromSuperview()
+        externalVideoView?.removeFromSuperview()
+        externalVideoView = videoView
+        rendererContainer.addSubview(videoView)
+        videoView.snp.remakeConstraints { $0.edges.equalToSuperview() }
+    }
+
+    /// Removes and returns the current renderer view (AVPlayerLayerView or external IJK view).
+    func detachRenderer() -> UIView? {
+        if let ext = externalVideoView {
+            ext.removeFromSuperview()
+            externalVideoView = nil
+            return ext
+        }
+        if avLayerView.superview != nil {
+            avLayerView.removeFromSuperview()
+            return avLayerView
+        }
+        return nil
+    }
+
+    /// Re-attaches a renderer view (from floating window) back into this player view.
+    func attachRenderer(_ view: UIView) {
+        view.removeFromSuperview()
+        if view is AVPlayerLayerView {
+            externalVideoView?.removeFromSuperview()
+            externalVideoView = nil
+            // avLayerView is let — re-add the detached one, or use the passed one
+            if view !== avLayerView {
+                avLayerView.playerLayer.player = nil
+                avLayerView.removeFromSuperview()
+                (view as? AVPlayerLayerView).map { avLayerView = $0 }
+            }
+        } else {
+            avLayerView.playerLayer.player = nil
+            avLayerView.removeFromSuperview()
+            externalVideoView = view
+        }
+        rendererContainer.addSubview(view)
+        view.snp.remakeConstraints { $0.edges.equalToSuperview() }
+    }
+
+    // MARK: - Volume (pan gesture)
 
     private let volumeView = MPVolumeView()
     private var volumeSlider: UISlider? {
@@ -32,6 +101,15 @@ final class PlayerView: UIView {
     override init(frame: CGRect) {
         super.init(frame: frame)
         backgroundColor = .black
+
+        rendererContainer.backgroundColor = .clear
+        addSubview(rendererContainer)
+        rendererContainer.snp.makeConstraints { $0.edges.equalToSuperview() }
+
+        avLayerView.playerLayer.videoGravity = .resizeAspect
+        rendererContainer.addSubview(avLayerView)
+        avLayerView.snp.makeConstraints { $0.edges.equalToSuperview() }
+
         volumeView.isHidden = true
         volumeView.alpha = 0.01
         addSubview(volumeView)
@@ -116,4 +194,11 @@ final class PlayerView: UIView {
             break
         }
     }
+}
+
+// MARK: - AVPlayerLayer-backed view
+
+final class AVPlayerLayerView: UIView {
+    override class var layerClass: AnyClass { AVPlayerLayer.self }
+    var playerLayer: AVPlayerLayer { layer as! AVPlayerLayer }
 }
