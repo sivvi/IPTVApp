@@ -242,6 +242,13 @@ final class DatabaseManager {
         }
     }
 
+    func databaseFileSize() throws -> Int64 {
+        let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let dbPath = documents.appendingPathComponent("iptvapp.sqlite")
+        let attrs = try FileManager.default.attributesOfItem(atPath: dbPath.path)
+        return (attrs[.size] as? Int64) ?? 0
+    }
+
     func deletePlaylist(id: String) throws {
         guard let dbQueue else { throw AppError.databaseError("数据库未初始化") }
         try dbQueue.write { db in

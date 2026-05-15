@@ -10,9 +10,11 @@ final class PlayerControlBar: UIView {
     var onSeekEnded: ((Float) -> Void)?
     var onFullscreenTapped: (() -> Void)?
     var onCastingTapped: (() -> Void)?
+    var onFillTapped: (() -> Void)?
 
     private let playPauseButton = UIButton(type: .system)
     private let castingButton = UIButton(type: .system)
+    private let fillButton = UIButton(type: .system)
     private let currentTimeLabel = UILabel()
     private let progressSlider = UISlider()
     private let durationLabel = UILabel()
@@ -68,9 +70,14 @@ final class PlayerControlBar: UIView {
         durationLabel.textColor = .white
         durationLabel.font = .monospacedDigitSystemFont(ofSize: 12, weight: .medium)
 
-        fullscreenButton.setImage(UIImage(systemName: "rectangle.arrowtriangle.2.outward"), for: .normal)
+        fullscreenButton.setImage(makePhoneOverlapIcon(), for: .normal)
         fullscreenButton.tintColor = .white
         fullscreenButton.addTarget(self, action: #selector(fullscreenAction), for: .touchUpInside)
+
+        fillButton.setImage(UIImage(systemName: "rectangle.arrowtriangle.2.inward"), for: .normal)
+        fillButton.tintColor = .white
+        fillButton.isHidden = true
+        fillButton.addTarget(self, action: #selector(fillAction), for: .touchUpInside)
 
         // Volume in-row
         volumeIcon.tintColor = .white
@@ -89,6 +96,7 @@ final class PlayerControlBar: UIView {
 
         addSubview(playPauseButton)
         addSubview(castingButton)
+        addSubview(fillButton)
         addSubview(fullscreenButton)
         addSubview(currentTimeLabel)
         addSubview(progressSlider)
@@ -107,8 +115,14 @@ final class PlayerControlBar: UIView {
             make.width.height.equalTo(36)
         }
 
-        fullscreenButton.snp.makeConstraints { make in
+        fillButton.snp.makeConstraints { make in
             make.leading.equalTo(castingButton.snp.trailing).offset(8)
+            make.centerY.equalTo(playPauseButton)
+            make.width.height.equalTo(44)
+        }
+
+        fullscreenButton.snp.makeConstraints { make in
+            make.leading.equalTo(fillButton.snp.trailing).offset(8)
             make.centerY.equalTo(playPauseButton)
             make.width.height.equalTo(44)
         }
@@ -184,8 +198,36 @@ final class PlayerControlBar: UIView {
     }
 
     func updateFullscreenButton(isFullscreen: Bool) {
-        let name = isFullscreen ? "rectangle.arrowtriangle.2.inward" : "rectangle.arrowtriangle.2.outward"
-        fullscreenButton.setImage(UIImage(systemName: name), for: .normal)
+        fullscreenButton.setImage(makePhoneOverlapIcon(), for: .normal)
+        fullscreenButton.tintColor = isFullscreen ? UIColor(hex: "#FF6B35") : .white
+    }
+
+    private func makePhoneOverlapIcon() -> UIImage {
+        let size: CGFloat = 28
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: size, height: size))
+        return renderer.image { ctx in
+            let symbolSize: CGFloat = 18
+            let config = UIImage.SymbolConfiguration(pointSize: symbolSize, weight: .regular)
+            let cgCtx = ctx.cgContext
+
+            // Portrait rectangle (left side)
+            if let portrait = UIImage(systemName: "rectangle.portrait", withConfiguration: config) {
+                let x: CGFloat = 0
+                let y = (size - portrait.size.height) / 2
+                portrait.draw(at: CGPoint(x: x, y: y))
+            }
+
+            // Landscape rectangle (rotated portrait, right side overlapping)
+            if let landscape = UIImage(systemName: "rectangle.portrait", withConfiguration: config) {
+                cgCtx.saveGState()
+                let cx: CGFloat = size - symbolSize / 2 - 1
+                let cy: CGFloat = size / 2
+                cgCtx.translateBy(x: cx, y: cy)
+                cgCtx.rotate(by: .pi / 2)
+                landscape.draw(at: CGPoint(x: -landscape.size.width / 2, y: -landscape.size.height / 2))
+                cgCtx.restoreGState()
+            }
+        }.withRenderingMode(.alwaysTemplate)
     }
 
     func setVisible(_ visible: Bool, animated: Bool = true) {
@@ -218,12 +260,20 @@ final class PlayerControlBar: UIView {
         onSeekEnded?(progressSlider.value)
     }
 
+    @objc private func fillAction() {
+        onFillTapped?()
+    }
+
     @objc private func fullscreenAction() {
         onFullscreenTapped?()
     }
 
     @objc private func castingAction() {
         onCastingTapped?()
+    }
+
+    func setFillButtonVisible(_ visible: Bool) {
+        fillButton.isHidden = !visible
     }
 
     func updateCastingButton(isCasting: Bool, deviceName: String?) {

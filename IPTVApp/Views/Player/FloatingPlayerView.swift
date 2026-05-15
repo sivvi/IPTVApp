@@ -5,11 +5,20 @@ final class FloatingPlayerView: UIView {
 
     var onClose: (() -> Void)?
     var onExpand: (() -> Void)?
+    var onPlayPauseTapped: (() -> Void)?
 
     private let videoContainer = UIView()
     private let closeButton = UIButton(type: .system)
     private let expandButton = UIButton(type: .system)
+    private let playPauseButton = UIButton(type: .system)
     private var initialCenter: CGPoint = .zero
+
+    var isPlaying: Bool = true {
+        didSet {
+            let name = isPlaying ? "pause.fill" : "play.fill"
+            playPauseButton.setImage(UIImage(systemName: name), for: .normal)
+        }
+    }
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -59,6 +68,17 @@ final class FloatingPlayerView: UIView {
             make.width.height.equalTo(24)
         }
 
+        playPauseButton.setImage(UIImage(systemName: "pause.fill"), for: .normal)
+        playPauseButton.tintColor = .white
+        playPauseButton.backgroundColor = UIColor.black.withAlphaComponent(0.5)
+        playPauseButton.layer.cornerRadius = 18
+        playPauseButton.addTarget(self, action: #selector(playPauseTappedAction), for: .touchUpInside)
+        addSubview(playPauseButton)
+        playPauseButton.snp.makeConstraints { make in
+            make.center.equalToSuperview()
+            make.width.height.equalTo(36)
+        }
+
         let pan = UIPanGestureRecognizer(target: self, action: #selector(handlePan(_:)))
         addGestureRecognizer(pan)
 
@@ -90,6 +110,10 @@ final class FloatingPlayerView: UIView {
         onExpand?()
     }
 
+    @objc private func playPauseTappedAction() {
+        onPlayPauseTapped?()
+    }
+
     @objc private func handlePan(_ pan: UIPanGestureRecognizer) {
         guard let superview = superview else { return }
         switch pan.state {
@@ -100,7 +124,6 @@ final class FloatingPlayerView: UIView {
             center = CGPoint(x: initialCenter.x + translation.x,
                              y: initialCenter.y + translation.y)
         case .ended, .cancelled:
-            // Snap to nearest edge
             let margin: CGFloat = 12
             var target = center
             let safeLeft = margin + bounds.width / 2

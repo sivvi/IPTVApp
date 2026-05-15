@@ -84,6 +84,17 @@ final class PlayerView: UIView {
         view.snp.remakeConstraints { $0.edges.equalToSuperview() }
     }
 
+    // MARK: - Fill toggle
+
+    private(set) var isFillMode = false
+
+    func toggleFill() -> Bool {
+        isFillMode.toggle()
+        let gravity: AVLayerVideoGravity = isFillMode ? .resizeAspectFill : .resizeAspect
+        avLayerView.playerLayer.videoGravity = gravity
+        return isFillMode
+    }
+
     // MARK: - Volume (pan gesture)
 
     private let volumeView = MPVolumeView()

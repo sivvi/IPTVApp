@@ -80,20 +80,23 @@ final class StreamHealthService {
 
     // MARK: - Thumbnail
 
-    /// Captures a frame from the stream. For HLS, uses a short-lived AVPlayer session
-    /// (up to 10s muted playback) to grab a decoded frame. For non-HLS, uses AVAssetImageGenerator.
     private func captureThumbnail(url: URL, channelId: String) -> Data? {
-        let path = url.lastPathComponent.lowercased()
-        let isHLS = path.hasSuffix(".m3u8") || path.hasSuffix("m3u") || path.contains("m3u8")
-
-        if isHLS {
+        if isHLSStream(url) {
             return captureViaPlayer(url: url, channelId: channelId)
         }
-
-        return captureFromAsset(url: url, channelId: channelId, timeout: 3)
+        return captureFromAsset(url: url, channelId: channelId, timeout: 4)
     }
 
-    private func captureFromAsset(url: URL, channelId: String, timeout: Int = 3) -> Data? {
+    private func isHLSStream(_ url: URL) -> Bool {
+        let urlString = url.absoluteString.lowercased()
+        let path = url.lastPathComponent.lowercased()
+        if path.hasSuffix(".m3u8") || path.hasSuffix(".m3u") { return true }
+        if urlString.contains(".m3u8") || urlString.contains("application/x-mpegurl")
+            || urlString.contains("application/vnd.apple.mpegurl") { return true }
+        return false
+    }
+
+    private func captureFromAsset(url: URL, channelId: String, timeout: Int = 4) -> Data? {
         let asset = AVURLAsset(url: url)
         let trackKey = "tracks"
 
@@ -108,15 +111,26 @@ final class StreamHealthService {
 
         let generator = AVAssetImageGenerator(asset: asset)
         generator.appliesPreferredTrackTransform = true
-        generator.maximumSize = CGSize(width: 160, height: 90)
-        generator.requestedTimeToleranceBefore = .positiveInfinity
-        generator.requestedTimeToleranceAfter = .positiveInfinity
+        generator.maximumSize = CGSize(width: 320, height: 180)
+        // Use loose tolerances — let the generator pick any nearby keyframe.
+        generator.requestedTimeToleranceBefore = .init(seconds: 10, preferredTimescale: 600)
+        generator.requestedTimeToleranceAfter = .init(seconds: 3, preferredTimescale: 600)
 
-        guard let cgImage = try? generator.copyCGImage(at: .zero, actualTime: nil) else { return nil }
-        return encodeAndCache(cgImage, channelId: channelId)
+        // Live streams often have no frame at .zero. Try several times.
+        let tryTimes: [CMTime] = [
+            CMTime(seconds: 2, preferredTimescale: 600),
+            CMTime(seconds: 5, preferredTimescale: 600),
+            .zero
+        ]
+        for time in tryTimes {
+            if let cgImage = try? generator.copyCGImage(at: time, actualTime: nil) {
+                return encodeAndCache(cgImage, channelId: channelId)
+            }
+        }
+        return nil
     }
 
-    /// Plays a muted AVPlayer for up to 10 seconds, captures the first decoded video frame
+    /// Plays a muted AVPlayer for up to 12 seconds, captures the first decoded video frame
     /// via AVPlayerItemVideoOutput, then stops. Returns JPEG data or nil on timeout/failure.
     private func captureViaPlayer(url: URL, channelId: String) -> Data? {
         let player = AVPlayer()
@@ -126,19 +140,19 @@ final class StreamHealthService {
         let item = AVPlayerItem(url: url)
         let output = AVPlayerItemVideoOutput(pixelBufferAttributes: [
             kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA,
-            kCVPixelBufferWidthKey as String: 160,
-            kCVPixelBufferHeightKey as String: 90
+            kCVPixelBufferWidthKey as String: 320
         ])
         item.add(output)
 
         player.replaceCurrentItem(with: item)
         player.play()
 
-        let deadline = Date().addingTimeInterval(10)
+        let deadline = Date().addingTimeInterval(12)
         while Date() < deadline {
             Thread.sleep(forTimeInterval: 0.3)
             let time = item.currentTime()
             guard time.isValid else { continue }
+            // Poll until a new pixel buffer is available, then copy it.
             guard output.hasNewPixelBuffer(forItemTime: time) else { continue }
             guard let buffer = output.copyPixelBuffer(forItemTime: time, itemTimeForDisplay: nil) else { continue }
 

@@ -1,4 +1,5 @@
 import UIKit
+import Combine
 
 final class FloatingPlayerManager {
 
@@ -8,6 +9,7 @@ final class FloatingPlayerManager {
     private var floatView: FloatingPlayerView?
     private var channel: Channel?
     private var playerService: PlayerServiceProtocol?
+    private var cancellables = Set<AnyCancellable>()
 
     var isActive: Bool { floatWindow != nil }
 
@@ -31,11 +33,12 @@ final class FloatingPlayerManager {
         window.windowLevel = .alert + 1
         window.backgroundColor = .clear
 
-        let size = CGSize(width: 160, height: 90)
+        let size = CGSize(width: 260, height: 146)
         let originX = scene.screen.bounds.width - size.width - 12
         let originY = scene.screen.bounds.height - scene.screen.bounds.height / 3
         let floatView = FloatingPlayerView(frame: CGRect(origin: CGPoint(x: originX, y: originY), size: size))
         floatView.attachVideo(videoView)
+        floatView.isPlaying = playerService.state.value.isPlaying
 
         floatView.onClose = { [weak self] in
             self?.dismiss()
@@ -43,12 +46,20 @@ final class FloatingPlayerManager {
         floatView.onExpand = { [weak self] in
             self?.expand()
         }
+        floatView.onPlayPauseTapped = { [weak self] in
+            self?.togglePlayPause()
+        }
+
+        playerService.state
+            .receive(on: DispatchQueue.main)
+            .sink { state in
+                floatView.isPlaying = state.isPlaying
+            }
+            .store(in: &cancellables)
 
         window.rootViewController = UIViewController()
         window.rootViewController?.view.addSubview(floatView)
         window.isHidden = false
-        // Force layout so videoContainer gets correct bounds from floatView's frame,
-        // which triggers SnapKit on the attached video view to fill the container.
         floatView.layoutIfNeeded()
 
         self.floatWindow = window
@@ -65,6 +76,16 @@ final class FloatingPlayerManager {
         playerService?.stop()
         playerService = nil
         channel = nil
+        cancellables.removeAll()
+    }
+
+    func togglePlayPause() {
+        guard let service = playerService else { return }
+        if service.state.value.isPlaying {
+            service.pause()
+        } else {
+            service.resume()
+        }
     }
 
     private func expand() {
@@ -80,8 +101,8 @@ final class FloatingPlayerManager {
         let ch = channel
         self.playerService = nil
         self.channel = nil
+        cancellables.removeAll()
 
-        // Present full-screen player with the existing renderer
         let vc = PlayerViewController(channel: ch, renderer: videoView, service: svc)
         topViewController()?.present(vc, animated: true)
     }

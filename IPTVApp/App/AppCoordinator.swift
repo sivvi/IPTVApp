@@ -40,7 +40,9 @@ final class AppCoordinator: Coordinator {
             selectedImage: UIImage(systemName: "star.fill")
         )
 
-        let settingsNC = UINavigationController(rootViewController: SettingsViewController())
+        let settingsVM = SettingsViewModel()
+        let settingsVC = SettingsViewController(viewModel: settingsVM)
+        let settingsNC = UINavigationController(rootViewController: settingsVC)
         settingsNC.tabBarItem = UITabBarItem(
             title: "设置",
             image: UIImage(systemName: "gearshape"),
