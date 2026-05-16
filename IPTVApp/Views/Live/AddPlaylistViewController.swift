@@ -9,6 +9,7 @@ final class AddPlaylistViewController: UIViewController {
 
     private let urlTextField = UITextField()
     private let nameTextField = UITextField()
+    private let epgUrlTextField = UITextField()
     private let addButton = UIButton(type: .system)
     private let importButton = UIButton(type: .system)
     private let activityIndicator = UIActivityIndicatorView(style: .medium)
@@ -34,6 +35,11 @@ final class AddPlaylistViewController: UIViewController {
         nameTextField.placeholder = "播放列表名称（可选）"
         nameTextField.borderStyle = .roundedRect
 
+        epgUrlTextField.placeholder = "EPG 节目单 URL（可选，含 url-tvg 时自动填充）"
+        epgUrlTextField.borderStyle = .roundedRect
+        epgUrlTextField.keyboardType = .URL
+        epgUrlTextField.autocapitalizationType = .none
+
         addButton.setTitle("添加", for: .normal)
         addButton.setTitleColor(.white, for: .normal)
         addButton.backgroundColor = UIColor(hex: "#FF6B35")
@@ -51,7 +57,7 @@ final class AddPlaylistViewController: UIViewController {
         errorLabel.isHidden = true
 
         let stack = UIStackView(arrangedSubviews: [
-            urlTextField, nameTextField, addButton, importButton, activityIndicator, errorLabel
+            urlTextField, nameTextField, epgUrlTextField, addButton, importButton, activityIndicator, errorLabel
         ])
         stack.axis = .vertical
         stack.spacing = 16
@@ -77,7 +83,10 @@ final class AddPlaylistViewController: UIViewController {
         addButton.isEnabled = false
 
         let vm = channelListViewModel ?? ChannelListViewModel()
-        vm.loadPlaylist(from: url)
+
+        let manualEpgUrl = epgUrlTextField.text?.trimmingCharacters(in: .whitespaces)
+        let manualEpgURL = manualEpgUrl.flatMap { !$0.isEmpty ? URL(string: $0) : nil }
+        vm.loadPlaylist(from: url, manualEpgURL: manualEpgURL)
 
         vm.isLoading
             .receive(on: DispatchQueue.main)

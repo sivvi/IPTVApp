@@ -14,9 +14,7 @@ final class PlayerViewController: UIViewController, UIGestureRecognizerDelegate 
     private let bufferingIndicator = UIActivityIndicatorView(style: .large)
     private let errorOverlay = UIView()
     private let nowPlayingView = EPGNowPlayingView()
-    private let infoTagBar = PlayerInfoTagBar()
-    private let infoContentScrollView = UIScrollView()
-    private let infoContentStack = UIStackView()
+    private let infoPanel = PlayerInfoPanel()
     private let castingStatusOverlay = CastingStatusOverlay()
     private let viewTapRecognizer = UITapGestureRecognizer()
 
@@ -82,7 +80,7 @@ final class PlayerViewController: UIViewController, UIGestureRecognizerDelegate 
         super.viewDidAppear(animated)
         viewModel.resetAutoHideTimer()
         nowPlayingView.configure(epgId: viewModel.channel.epgId)
-        infoTagBar.selectTag(at: 1)
+        infoPanel.selectPage(1, animated: false)
         presentProgramList()
     }
 
@@ -150,21 +148,9 @@ final class PlayerViewController: UIViewController, UIGestureRecognizerDelegate 
         controlBar.alpha = 0
         view.addSubview(controlBar)
 
-        infoTagBar.alpha = 0
-        view.addSubview(infoTagBar)
-        setupInfoTagCallbacks()
-
-        infoContentScrollView.alpha = 0
-        infoContentScrollView.showsVerticalScrollIndicator = false
-        infoContentStack.axis = .vertical
-        infoContentStack.spacing = 0
-        infoContentStack.alignment = .fill
-        infoContentScrollView.addSubview(infoContentStack)
-        infoContentStack.snp.makeConstraints { make in
-            make.edges.equalToSuperview()
-            make.width.equalToSuperview()
-        }
-        view.addSubview(infoContentScrollView)
+        infoPanel.alpha = 0
+        view.addSubview(infoPanel)
+        setupInfoPanelCallbacks()
 
         nowPlayingView.alpha = 0
         nowPlayingView.isUserInteractionEnabled = false
@@ -277,14 +263,8 @@ final class PlayerViewController: UIViewController, UIGestureRecognizerDelegate 
             make.width.height.equalTo(32)
         }
 
-        infoTagBar.snp.remakeConstraints { make in
-            make.top.equalTo(playerView.snp.bottom).offset(16)
-            make.leading.trailing.equalToSuperview()
-            make.height.equalTo(64)
-        }
-
-        infoContentScrollView.snp.remakeConstraints { make in
-            make.top.equalTo(infoTagBar.snp.bottom).offset(8)
+        infoPanel.snp.remakeConstraints { make in
+            make.top.equalTo(playerView.snp.bottom).offset(8)
             make.leading.trailing.equalToSuperview().inset(16)
             make.bottom.equalTo(controlBar.snp.top).offset(-8)
         }
@@ -313,14 +293,8 @@ final class PlayerViewController: UIViewController, UIGestureRecognizerDelegate 
             make.width.height.equalTo(32)
         }
 
-        infoTagBar.snp.remakeConstraints { make in
+        infoPanel.snp.remakeConstraints { make in
             make.top.equalTo(view.snp.bottom)
-            make.leading.trailing.equalToSuperview()
-            make.height.equalTo(0)
-        }
-
-        infoContentScrollView.snp.remakeConstraints { make in
-            make.top.equalTo(infoTagBar.snp.bottom)
             make.leading.trailing.equalToSuperview()
             make.height.equalTo(0)
         }
@@ -368,9 +342,6 @@ final class PlayerViewController: UIViewController, UIGestureRecognizerDelegate 
             .sink { [weak self] visible in
                 self?.controlBar.setVisible(visible)
                 self?.nowPlayingView.setVisible(visible)
-                let isFullscreen = self?.viewModel.isFullscreen.value ?? false
-                self?.infoTagBar.alpha = (visible && !isFullscreen) ? 1 : 0
-                self?.infoContentScrollView.alpha = (visible && !isFullscreen) ? 1 : 0
                 if visible {
                     self?.nowPlayingView.configure(epgId: self?.viewModel.channel.epgId)
                 }
@@ -382,8 +353,7 @@ final class PlayerViewController: UIViewController, UIGestureRecognizerDelegate 
             .sink { [weak self] fullscreen in
                 self?.controlBar.updateFullscreenButton(isFullscreen: fullscreen)
                 self?.controlBar.setFillButtonVisible(fullscreen)
-                self?.infoTagBar.alpha = fullscreen ? 0 : (self?.controlBar.alpha ?? 0)
-                self?.infoContentScrollView.alpha = fullscreen ? 0 : (self?.controlBar.alpha ?? 0)
+                self?.infoPanel.alpha = fullscreen ? 0 : 1
             }
             .store(in: &cancellables)
 
@@ -484,18 +454,15 @@ final class PlayerViewController: UIViewController, UIGestureRecognizerDelegate 
         }
     }
 
-    private func setupInfoTagCallbacks() {
-        infoTagBar.onStreamInfoTapped = { [weak self] in
-            self?.presentStreamInfo()
-        }
-        infoTagBar.onProgramListTapped = { [weak self] in
-            self?.presentProgramList()
-        }
-        infoTagBar.onChannelTapped = { [weak self] in
-            self?.presentChannelInfo()
-        }
-        infoTagBar.onSourceTapped = { [weak self] in
-            self?.presentSourcePicker()
+    private func setupInfoPanelCallbacks() {
+        infoPanel.onPageSelected = { [weak self] (page: Int) in
+            switch page {
+            case 0: self?.presentStreamInfo()
+            case 1: self?.presentProgramList()
+            case 2: self?.presentChannelInfo()
+            case 3: self?.presentSourcePicker()
+            default: break
+            }
         }
     }
 
@@ -675,88 +642,120 @@ final class PlayerViewController: UIViewController, UIGestureRecognizerDelegate 
 
     private func presentStreamInfo() {
         guard let avService = viewModel.activePlayerService as? AVPlayerService,
-              let item = avService.player.currentItem else { return }
-
-        var lines: [(String, String)] = []
-
-        // --- Video ---
-        let presSize = item.presentationSize
-        if presSize != .zero {
-            lines.append(("分辨率", "\(Int(presSize.width)) × \(Int(presSize.height))"))
+              let item = avService.player.currentItem else {
+            infoPanel.setContent(title: "视频流信息", rows: [("提示", "当前播放器不支持获取流信息")], forPage: 0)
+            return
         }
 
-        if let videoTrack = item.asset.tracks(withMediaType: .video).first {
-            let formats: [String] = videoTrack.formatDescriptions.compactMap { desc in
-                let str = desc as! CMFormatDescription
-                let code = CMFormatDescriptionGetMediaSubType(str)
-                return fourCharString(code)
-            }
-            if let codec = formats.first {
-                lines.append(("编码格式", mapVideoCodec(codec)))
-            }
+        infoPanel.setContent(title: "视频流信息", rows: [("提示", "加载中...")], forPage: 0)
 
-            let bitrate = videoTrack.estimatedDataRate
-            if bitrate > 0 {
-                lines.append(("视频码率", String(format: "%.1f Mbps", bitrate / 1_000_000)))
-            }
+        let asset = item.asset
+        asset.loadValuesAsynchronously(forKeys: ["tracks"]) { [weak self] in
+            var lines: [(String, String)] = []
 
-            let fps = videoTrack.nominalFrameRate
-            lines.append(("帧率", String(format: "%.1f fps", fps)))
-
-            if let desc = videoTrack.formatDescriptions.first {
-                lines.append(("动态范围", videoDynamicRange(desc as! CMFormatDescription)))
-            }
-        }
-
-        if let ev = item.accessLog()?.events.last, ev.indicatedBitrate > 0 {
-            lines.append(("实际码率", String(format: "%.1f Mbps", ev.indicatedBitrate / 1_000_000)))
-        }
-
-        // --- Audio ---
-        if let audioTrack = item.asset.tracks(withMediaType: .audio).first {
-            let audioFormats: [String] = audioTrack.formatDescriptions.compactMap { desc in
-                let str = desc as! CMFormatDescription
-                let code = CMFormatDescriptionGetMediaSubType(str)
-                return fourCharString(code)
-            }
-            if let audioCodec = audioFormats.first {
-                lines.append(("音频编码", mapAudioCodec(audioCodec)))
+            var error: NSError?
+            let tracksStatus = asset.statusOfValue(forKey: "tracks", error: &error)
+            guard tracksStatus == .loaded, error == nil else {
+                DispatchQueue.main.async {
+                    self?.infoPanel.setContent(title: "视频流信息", rows: [("提示", "流信息加载失败，请稍后再试")], forPage: 0)
+                }
+                return
             }
 
-            if let desc = audioTrack.formatDescriptions.first {
-                let cmDesc = desc as! CMFormatDescription
-                if let asbdPtr = CMAudioFormatDescriptionGetStreamBasicDescription(cmDesc) {
-                    let asbd = asbdPtr.pointee
-                    let ch = asbd.mChannelsPerFrame
-                    let channelText: String
-                    switch ch {
-                    case 1:  channelText = "单声道 (1.0)"
-                    case 2:  channelText = "立体声 (2.0)"
-                    case 6:  channelText = "环绕声 (5.1)"
-                    case 8:  channelText = "环绕声 (7.1)"
-                    default: channelText = "\(ch)声道"
-                    }
-                    lines.append(("声道数", channelText))
+            let item = avService.player.currentItem
 
-                    let sampleRate = asbd.mSampleRate
-                    lines.append(("采样率", String(format: "%.1f kHz", sampleRate / 1000)))
+            // Resolution
+            let presSize = item?.presentationSize ?? .zero
+            if presSize != .zero {
+                lines.append(("分辨率", "\(Int(presSize.width)) × \(Int(presSize.height))"))
+            }
 
-                    lines.append(("音频类型", audioTypeFromASBD(asbd)))
+            // Try asset tracks first (VOD), fall back to player item tracks (HLS live)
+            let videoTrack: AVAssetTrack? = asset.tracks(withMediaType: .video).first
+                ?? item?.tracks.first(where: { $0.assetTrack?.mediaType == .video })?.assetTrack
+
+            if let videoTrack {
+                let formats: [String] = videoTrack.formatDescriptions.compactMap { desc in
+                    let str = desc as! CMFormatDescription
+                    let code = CMFormatDescriptionGetMediaSubType(str)
+                    return fourCharString(code)
+                }
+                if let codec = formats.first {
+                    lines.append(("编码格式", self?.mapVideoCodec(codec) ?? codec))
+                }
+
+                let bitrate = videoTrack.estimatedDataRate
+                if bitrate > 0 {
+                    lines.append(("视频码率", String(format: "%.1f Mbps", bitrate / 1_000_000)))
+                }
+
+                let fps = videoTrack.nominalFrameRate
+                lines.append(("帧率", String(format: "%.1f fps", fps)))
+
+                if let desc = videoTrack.formatDescriptions.first {
+                    lines.append(("动态范围", self?.videoDynamicRange(desc as! CMFormatDescription) ?? "—"))
                 }
             }
 
-            let audioBitrate = audioTrack.estimatedDataRate
-            if audioBitrate > 0 {
-                lines.append(("音频码率", String(format: "%.0f kbps", audioBitrate / 1000)))
+            // Actual bitrate from access log (HLS)
+            if let ev = item?.accessLog()?.events.last, ev.indicatedBitrate > 0 {
+                lines.append(("实际码率", String(format: "%.1f Mbps", ev.indicatedBitrate / 1_000_000)))
+            } else if let ev = item?.accessLog()?.events.last, ev.observedBitrate > 0 {
+                lines.append(("实际码率", String(format: "%.1f Mbps", ev.observedBitrate / 1_000_000)))
+            }
+
+            // Audio
+            let audioTrack: AVAssetTrack? = asset.tracks(withMediaType: .audio).first
+                ?? item?.tracks.first(where: { $0.assetTrack?.mediaType == .audio })?.assetTrack
+
+            if let audioTrack {
+                let audioFormats: [String] = audioTrack.formatDescriptions.compactMap { desc in
+                    let str = desc as! CMFormatDescription
+                    let code = CMFormatDescriptionGetMediaSubType(str)
+                    return fourCharString(code)
+                }
+                if let audioCodec = audioFormats.first {
+                    lines.append(("音频编码", self?.mapAudioCodec(audioCodec) ?? audioCodec))
+                }
+
+                if let desc = audioTrack.formatDescriptions.first {
+                    let cmDesc = desc as! CMFormatDescription
+                    if let asbdPtr = CMAudioFormatDescriptionGetStreamBasicDescription(cmDesc) {
+                        let asbd = asbdPtr.pointee
+                        let ch = asbd.mChannelsPerFrame
+                        let channelText: String
+                        switch ch {
+                        case 1:  channelText = "单声道 (1.0)"
+                        case 2:  channelText = "立体声 (2.0)"
+                        case 6:  channelText = "环绕声 (5.1)"
+                        case 8:  channelText = "环绕声 (7.1)"
+                        default: channelText = "\(ch)声道"
+                        }
+                        lines.append(("声道数", channelText))
+
+                        let sampleRate = asbd.mSampleRate
+                        lines.append(("采样率", String(format: "%.1f kHz", sampleRate / 1000)))
+
+                        lines.append(("音频类型", self?.audioTypeFromASBD(asbd) ?? "—"))
+                    }
+                }
+
+                let audioBitrate = audioTrack.estimatedDataRate
+                if audioBitrate > 0 {
+                    lines.append(("音频码率", String(format: "%.0f kbps", audioBitrate / 1000)))
+                }
+            }
+
+            lines.append(("播放类型", self?.viewModel.isUsingIJK.value == true ? "IJK软解" : "AVPlayer硬解"))
+
+            DispatchQueue.main.async {
+                if lines.isEmpty {
+                    self?.infoPanel.setContent(title: "视频流信息", rows: [("提示", "流信息加载中，请稍后再试")], forPage: 0)
+                } else {
+                    self?.infoPanel.setContent(title: "视频流信息", rows: lines, forPage: 0)
+                }
             }
         }
-
-        lines.append(("播放类型", viewModel.isUsingIJK.value ? "IJK软解" : "AVPlayer硬解"))
-
-        if lines.isEmpty {
-            lines.append(("提示", "流信息加载中，请稍后再试"))
-        }
-        showInlineContent(title: "视频流信息", rows: lines)
     }
 
     // MARK: - Stream info helpers
@@ -841,8 +840,21 @@ final class PlayerViewController: UIViewController, UIGestureRecognizerDelegate 
     }
 
     private func presentProgramList() {
-        let channelId = viewModel.channel.id
-        let epgId = viewModel.channel.epgId ?? channelId
+        let channel = viewModel.channel
+
+        // Resolve effective EPG id: explicit epgId → name-based match → channel id
+        let effectiveEpgId: String = {
+            if let epgId = channel.epgId, !epgId.isEmpty { return epgId }
+            // Try name-based matching via stored EPG channel map
+            if let data = UserDefaults.standard.data(forKey: "epg_channel_map"),
+               let map = try? JSONDecoder().decode([String: String].self, from: data) {
+                let lowerName = channel.name.lowercased()
+                for (epgId, displayName) in map where displayName.lowercased() == lowerName {
+                    return epgId
+                }
+            }
+            return channel.id
+        }()
 
         DispatchQueue.global(qos: .utility).async { [weak self] in
             let now = Date()
@@ -850,7 +862,7 @@ final class PlayerViewController: UIViewController, UIGestureRecognizerDelegate 
             let end = now.addingTimeInterval(86400)
             let programs: [Program]
             do {
-                programs = try DatabaseManager.shared.fetchPrograms(for: epgId, from: start, to: end)
+                programs = try DatabaseManager.shared.fetchPrograms(for: effectiveEpgId, from: start, to: end)
             } catch {
                 programs = []
             }
@@ -865,9 +877,9 @@ final class PlayerViewController: UIViewController, UIGestureRecognizerDelegate 
             DispatchQueue.main.async {
                 let name = self?.viewModel.channel.name ?? ""
                 if rows.isEmpty {
-                    self?.showInlineContent(title: "\(name) — 节目单", rows: [("提示", "暂无节目数据")])
+                    self?.infoPanel.setContent(title: "\(name) — 节目单", rows: [("提示", "暂无节目数据")], forPage: 1)
                 } else {
-                    self?.showInlineContent(title: "\(name) — 节目单", rows: rows)
+                    self?.infoPanel.setContent(title: "\(name) — 节目单", rows: rows, forPage: 1)
                 }
             }
         }
@@ -887,63 +899,12 @@ final class PlayerViewController: UIViewController, UIGestureRecognizerDelegate 
             let time = "\(formatter.string(from: program.startTime))-\(formatter.string(from: program.endTime))"
             rows.insert(("正在播出", "\(program.title) (\(time))"), at: 0)
         }
-        showInlineContent(title: "频道信息", rows: rows)
+        infoPanel.setContent(title: "频道信息", rows: rows, forPage: 2)
     }
 
     private func presentSourcePicker() {
         let currentURL = viewModel.channel.url
-        showInlineContent(title: "线路选择", rows: [("当前线路", currentURL)])
-    }
-
-    // MARK: - Inline content
-
-    private func showInlineContent(title: String, rows: [(String, String)]) {
-        infoContentStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
-
-        let titleLabel = UILabel()
-        titleLabel.text = title
-        titleLabel.font = .systemFont(ofSize: 14, weight: .semibold)
-        titleLabel.textColor = .white
-        titleLabel.numberOfLines = 0
-        infoContentStack.addArrangedSubview(titleLabel)
-
-        let titleSpacer = UIView()
-        titleSpacer.heightAnchor.constraint(equalToConstant: 10).isActive = true
-        infoContentStack.addArrangedSubview(titleSpacer)
-
-        for (key, value) in rows {
-            let row = UIStackView()
-            row.axis = .horizontal
-            row.distribution = .fill
-            row.alignment = .top
-            row.spacing = 12
-            row.isLayoutMarginsRelativeArrangement = true
-            row.layoutMargins = UIEdgeInsets(top: 7, left: 12, bottom: 7, right: 12)
-
-            let keyLabel = UILabel()
-            keyLabel.text = key
-            keyLabel.font = .systemFont(ofSize: 13, weight: .medium)
-            keyLabel.textColor = UIColor(hex: "#B2BEC3")
-            keyLabel.setContentHuggingPriority(.required, for: .horizontal)
-
-            let valueLabel = UILabel()
-            valueLabel.text = value
-            valueLabel.font = .systemFont(ofSize: 13)
-            valueLabel.textColor = UIColor(hex: "#DFE6E9")
-            valueLabel.numberOfLines = 0
-
-            row.addArrangedSubview(keyLabel)
-            row.addArrangedSubview(valueLabel)
-            infoContentStack.addArrangedSubview(row)
-
-            let sep = UIView()
-            sep.backgroundColor = UIColor.white.withAlphaComponent(0.08)
-            sep.heightAnchor.constraint(equalToConstant: 0.5).isActive = true
-            infoContentStack.addArrangedSubview(sep)
-        }
-
-        // Scroll to top
-        infoContentScrollView.setContentOffset(.zero, animated: false)
+        infoPanel.setContent(title: "线路选择", rows: [("当前线路", currentURL)], forPage: 3)
     }
 
     private func showErrorOverlay(_ message: String) {

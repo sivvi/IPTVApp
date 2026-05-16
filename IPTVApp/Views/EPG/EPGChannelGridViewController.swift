@@ -8,6 +8,7 @@ final class EPGChannelGridViewController: UIViewController {
     private let tableView = UITableView(frame: .zero, style: .plain)
     private let timelineView = EPGTimelineView()
     private let dateLabel = UILabel()
+    private let searchController = UISearchController(searchResultsController: nil)
     private var cancellables = Set<AnyCancellable>()
 
     override func viewDidLoad() {
@@ -15,6 +16,7 @@ final class EPGChannelGridViewController: UIViewController {
         title = "节目指南"
         view.backgroundColor = UIColor(hex: "#FFF9F0")
         setupNavigationBar()
+        setupSearch()
         setupViews()
         setupBindings()
         viewModel.loadPrograms()
@@ -33,18 +35,20 @@ final class EPGChannelGridViewController: UIViewController {
             target: self,
             action: #selector(nextDay)
         )
-        let todayButton = UIBarButtonItem(
-            title: "今天",
-            style: .plain,
-            target: self,
-            action: #selector(goToday)
-        )
-        navigationItem.leftBarButtonItems = [prevButton, todayButton, nextButton]
+        navigationItem.leftBarButtonItems = [prevButton, nextButton]
 
         dateLabel.font = .systemFont(ofSize: 16, weight: .semibold)
         dateLabel.textColor = UIColor(hex: "#2D3436")
         dateLabel.textAlignment = .center
         navigationItem.titleView = dateLabel
+    }
+
+    private func setupSearch() {
+        searchController.searchResultsUpdater = self
+        searchController.obscuresBackgroundDuringPresentation = false
+        searchController.searchBar.placeholder = "搜索频道"
+        navigationItem.searchController = searchController
+        definesPresentationContext = true
     }
 
     private func setupViews() {
@@ -61,6 +65,14 @@ final class EPGChannelGridViewController: UIViewController {
 
         timelineView.onProgramTapped = { [weak self] program in
             self?.showProgramDetail(program)
+        }
+
+        // Sync timeline vertical scroll back to channel list (right → left)
+        timelineView.onVerticalScroll = { [weak self] offset in
+            guard let self else { return }
+            let sv = self.timelineView.contentScrollView
+            guard sv.isDragging || sv.isDecelerating else { return }
+            self.tableView.contentOffset.y = offset.y
         }
 
         layoutViews()
@@ -131,10 +143,6 @@ final class EPGChannelGridViewController: UIViewController {
         viewModel.goToNextDay()
     }
 
-    @objc private func goToday() {
-        viewModel.goToToday()
-    }
-
     // MARK: - Program Detail
 
     private func showProgramDetail(_ program: Program) {
@@ -169,7 +177,7 @@ final class EPGChannelGridViewController: UIViewController {
     private func showEmptyOverlay() {
         guard emptyLabel == nil else { return }
         let label = UILabel()
-        label.text = "暂无节目数据\n请先添加EPG源"
+        label.text = "暂无节目数据"
         label.textColor = UIColor(hex: "#B2BEC3")
         label.font = .systemFont(ofSize: 15)
         label.textAlignment = .center
@@ -249,7 +257,15 @@ extension EPGChannelGridViewController: UITableViewDataSource, UITableViewDelega
 extension EPGChannelGridViewController {
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
         guard scrollView === tableView else { return }
-        let offset = scrollView.contentOffset
-        timelineView.contentScrollView.contentOffset.y = offset.y
+        guard scrollView.isDragging || scrollView.isDecelerating else { return }
+        timelineView.contentScrollView.contentOffset.y = scrollView.contentOffset.y
+    }
+}
+
+// MARK: - UISearchResultsUpdating
+
+extension EPGChannelGridViewController: UISearchResultsUpdating {
+    func updateSearchResults(for searchController: UISearchController) {
+        viewModel.searchQuery = searchController.searchBar.text ?? ""
     }
 }

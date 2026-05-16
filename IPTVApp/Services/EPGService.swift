@@ -5,6 +5,7 @@ final class EPGService {
     static let shared = EPGService()
 
     private let session: URLSession
+    private let fastSession: URLSession
     private let parser = XMLTVParser()
 
     private init() {
@@ -12,11 +13,25 @@ final class EPGService {
         config.timeoutIntervalForRequest = Constants.apiTimeout
         config.timeoutIntervalForResource = 120
         session = URLSession(configuration: config)
+
+        let fastConfig = URLSessionConfiguration.default
+        fastConfig.timeoutIntervalForRequest = 5
+        fastConfig.timeoutIntervalForResource = 10
+        fastSession = URLSession(configuration: fastConfig)
     }
 
     // MARK: - Public
 
     func loadEPG(from url: URL) -> AnyPublisher<Void, AppError> {
+        loadEPG(from: url, session: session)
+    }
+
+    /// Short-timeout variant used for auto-discovery candidate probing.
+    func loadEPGFast(from url: URL) -> AnyPublisher<Void, AppError> {
+        loadEPG(from: url, session: fastSession)
+    }
+
+    private func loadEPG(from url: URL, session: URLSession) -> AnyPublisher<Void, AppError> {
         Logger.parser.info("开始加载EPG: \(url.absoluteString)")
 
         return session.dataTaskPublisher(for: url)
@@ -33,10 +48,19 @@ final class EPGService {
             .tryMap { epgData -> Void in
                 do {
                     try DatabaseManager.shared.insertPrograms(epgData.programs)
+
+                    // Persist channel id → display-name mapping for name-based fallback matching
+                    let channelMap: [String: String] = epgData.channels.reduce(into: [:]) { dict, ch in
+                        dict[ch.id] = ch.displayName
+                    }
+                    if let json = try? JSONEncoder().encode(channelMap) {
+                        UserDefaults.standard.set(json, forKey: "epg_channel_map")
+                    }
+
                     let lastKey = "epg_last_updated_\(url.absoluteString.hashValue)"
                     UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: lastKey)
                     UserDefaults.standard.set(url.absoluteString, forKey: "epg_source_url")
-                    Logger.parser.info("EPG加载完成: \(epgData.programs.count)个节目")
+                    Logger.parser.info("EPG加载完成: \(epgData.programs.count)个节目, \(epgData.channels.count)个频道")
                 } catch {
                     Logger.parser.error("EPG写入数据库失败: \(error.localizedDescription)")
                     throw AppError.databaseError(error.localizedDescription)

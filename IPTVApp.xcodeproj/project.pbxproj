@@ -67,6 +67,7 @@
 		DA79943DCE9070EEB64F576E /* PlayerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DDBC57390037D291668362B /* PlayerViewController.swift */; };
 		6635A8D13B9740E0953D5644 /* FloatingPlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83AEBA16587D4A009FBEE781 /* FloatingPlayerView.swift */; };
 		B96DBDF47D09437CBD9CC468 /* PlayerInfoTagBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBCB9EBEA6EC492FA54FE488 /* PlayerInfoTagBar.swift */; };
+		CBEDE6A47731F79C578256B9 /* PlayerInfoPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44AA8A6181B6F656D7D85740 /* PlayerInfoPanel.swift */; };
 		8B2CF3748A044FF29C1A61FE /* FloatingPlayerManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0E33E6BDC704DF685AEBFC9 /* FloatingPlayerManager.swift */; };
 		DB4B33BF247C541E97EBFDDF /* DatabaseManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DE1AF53317C8BCC8D908E99 /* DatabaseManagerTests.swift */; };
 		E877D8ECFD0BB7F76586C9A1 /* DevicePickerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97DFE1FAED81FDD210031235 /* DevicePickerViewController.swift */; };
@@ -145,6 +146,7 @@
 		A8BFA866E835912B25D7EA90 /* PlayerControlBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerControlBar.swift; sourceTree = "<group>"; };
 		83AEBA16587D4A009FBEE781 /* FloatingPlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingPlayerView.swift; sourceTree = "<group>"; };
 		FBCB9EBEA6EC492FA54FE488 /* PlayerInfoTagBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerInfoTagBar.swift; sourceTree = "<group>"; };
+		44AA8A6181B6F656D7D85740 /* PlayerInfoPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerInfoPanel.swift; sourceTree = "<group>"; };
 		B2A52CA5FA1D37C3BA6D987E /* CastingServiceProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CastingServiceProtocol.swift; sourceTree = "<group>"; };
 		BBBF05BAEB8FF390E2DF8A55 /* EPGNowPlayingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EPGNowPlayingView.swift; sourceTree = "<group>"; };
 		C554AC027DF4194D3CA8AA91 /* PlaylistDownloader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaylistDownloader.swift; sourceTree = "<group>"; };
@@ -232,6 +234,7 @@
 				7DDBC57390037D291668362B /* PlayerViewController.swift */,
 				83AEBA16587D4A009FBEE781 /* FloatingPlayerView.swift */,
 				FBCB9EBEA6EC492FA54FE488 /* PlayerInfoTagBar.swift */,
+				44AA8A6181B6F656D7D85740 /* PlayerInfoPanel.swift */,
 			);
 			path = Player;
 			sourceTree = "<group>";
@@ -610,6 +613,7 @@
 				DA79943DCE9070EEB64F576E /* PlayerViewController.swift in Sources */,
 				6635A8D13B9740E0953D5644 /* FloatingPlayerView.swift in Sources */,
 				B96DBDF47D09437CBD9CC468 /* PlayerInfoTagBar.swift in Sources */,
+				CBEDE6A47731F79C578256B9 /* PlayerInfoPanel.swift in Sources */,
 				6CAA9B185E0C00C81765D99C /* PlayerViewModel.swift in Sources */,
 				04E21315013A4DD4D457B42F /* Playlist.swift in Sources */,
 				8F3A4E79FB2B4AE2AB905E92 /* PlaylistDownloader.swift in Sources */,

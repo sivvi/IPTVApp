@@ -5,11 +5,20 @@ final class EPGViewModel: BaseViewModel {
 
     @Published var channelPrograms: [(channel: Channel, programs: [Program])] = []
     @Published var selectedDate: Date = Date()
+    @Published var searchQuery: String = ""
 
     private var allChannels: [Channel] = []
+    private var allChannelPrograms: [(channel: Channel, programs: [Program])] = []
 
     override init() {
         super.init()
+        $searchQuery
+            .debounce(for: .milliseconds(250), scheduler: DispatchQueue.main)
+            .removeDuplicates()
+            .sink { [weak self] _ in
+                self?.applyFilter()
+            }
+            .store(in: &cancellables)
     }
 
     // MARK: - Public
@@ -25,35 +34,85 @@ final class EPGViewModel: BaseViewModel {
             return
         }
 
-        let epgChannels = allChannels.filter { $0.epgId != nil && !$0.epgId!.isEmpty }
-        guard !epgChannels.isEmpty else {
+        guard !allChannels.isEmpty else {
+            allChannelPrograms = []
             channelPrograms = []
             return
         }
 
-        let channelIds = epgChannels.map { $0.epgId! }
+        // Load EPG channel id → display-name mapping for name-based fallback
+        let epgChannelMap: [String: String] = {
+            guard let data = UserDefaults.standard.data(forKey: "epg_channel_map"),
+                  let map = try? JSONDecoder().decode([String: String].self, from: data) else { return [:] }
+            return map
+        }()
+
+        // Build a reverse map: channel name → epg channel id (lowercased for fuzzy matching)
+        var nameToEpgId: [String: String] = [:]
+        for (epgId, displayName) in epgChannelMap {
+            nameToEpgId[displayName.lowercased()] = epgId
+        }
+
+        // For each channel, resolve its effective EPG id
+        var channelEffectiveEpgId: [(channel: Channel, effectiveEpgId: String?)] = []
+        var allEpgIds: Set<String> = []
+
+        for channel in allChannels {
+            if let epgId = channel.epgId, !epgId.isEmpty {
+                channelEffectiveEpgId.append((channel, epgId))
+                allEpgIds.insert(epgId)
+            } else if let matchedId = nameToEpgId[channel.name.lowercased()] {
+                channelEffectiveEpgId.append((channel, matchedId))
+                allEpgIds.insert(matchedId)
+            } else {
+                channelEffectiveEpgId.append((channel, nil))
+            }
+        }
+
+        guard !allEpgIds.isEmpty else {
+            allChannelPrograms = []
+            channelPrograms = []
+            return
+        }
 
         do {
             let programsByChannel = try EPGService.shared.fetchPrograms(
-                for: channelIds,
+                for: Array(allEpgIds),
                 date: selectedDate
             )
 
             let calendar = Calendar.current
             let today = calendar.startOfDay(for: Date())
 
-            channelPrograms = epgChannels.compactMap { channel in
-                let epgId = channel.epgId!
-                let programs = programsByChannel[epgId] ?? []
-                // Only include channels that are either in favorites or have EPG data
-                guard channel.isFavorite || !programs.isEmpty else { return nil }
-                // For past dates, always show if programs exist; for today, include favorites even without programs
+            allChannelPrograms = channelEffectiveEpgId.compactMap { item in
+                let programs: [Program]
+                if let epgId = item.effectiveEpgId {
+                    programs = programsByChannel[epgId] ?? []
+                } else {
+                    programs = []
+                }
+                guard item.channel.isFavorite || !programs.isEmpty else { return nil }
                 let isToday = calendar.isDate(selectedDate, inSameDayAs: today)
                 if !isToday && programs.isEmpty { return nil }
-                return (channel: channel, programs: programs)
+                return (channel: item.channel, programs: programs)
             }
+            applyFilter()
         } catch {
             errorMessage.send("加载节目失败: \(error.localizedDescription)")
+        }
+    }
+
+    // MARK: - Search
+
+    private func applyFilter() {
+        let query = searchQuery.trimmingCharacters(in: .whitespaces).lowercased()
+        if query.isEmpty {
+            channelPrograms = allChannelPrograms
+        } else {
+            channelPrograms = allChannelPrograms.filter {
+                $0.channel.name.localizedCaseInsensitiveContains(query) ||
+                ($0.channel.group ?? "").localizedCaseInsensitiveContains(query)
+            }
         }
     }
 

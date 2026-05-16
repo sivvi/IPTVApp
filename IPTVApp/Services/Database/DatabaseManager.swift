@@ -170,7 +170,7 @@ final class DatabaseManager {
         return try dbQueue.read { db in
             try Program
                 .filter(Program.Columns.channelId == channelId)
-                .filter(Program.Columns.startTime >= startDate && Program.Columns.endTime <= endDate)
+                .filter(Program.Columns.startTime < endDate && Program.Columns.endTime > startDate)
                 .order(Program.Columns.startTime)
                 .fetchAll(db)
         }

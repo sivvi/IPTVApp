@@ -50,12 +50,16 @@ final class ChannelListViewModel: BaseViewModel {
         }
     }
 
-    func loadPlaylist(from url: URL) {
+    func loadPlaylist(from url: URL, manualEpgURL: URL? = nil) {
         isLoading.send(true)
+
+        var extractedEpgUrl: String?
 
         PlaylistDownloader.shared.download(from: url)
             .tryMap { content -> ([Channel], Playlist) in
-                let channels = try M3UParser().parse(content: content)
+                let parser = M3UParser()
+                let channels = try parser.parse(content: content)
+                extractedEpgUrl = parser.epgUrl
                 let playlist = Playlist(
                     name: url.lastPathComponent,
                     sourceUrl: url.absoluteString,
@@ -74,14 +78,22 @@ final class ChannelListViewModel: BaseViewModel {
             }
             .receive(on: DispatchQueue.main)
             .sink { [weak self] completion in
-                self?.isLoading.send(false)
                 if case .failure(let error) = completion {
+                    self?.isLoading.send(false)
                     let msg = (error as? AppError)?.errorDescription ?? error.localizedDescription
                     self?.errorMessage.send(msg)
                 }
             } receiveValue: { [weak self] in
                 self?.loadChannels()
                 self?.loadPlaylists()
+                // Determine EPG URL: manual > extracted header > auto-discover
+                let epgURL: URL? = manualEpgURL
+                    ?? extractedEpgUrl.flatMap { URL(string: $0) }
+                if let epgURL {
+                    self?.loadEPG(from: epgURL, finishLoading: true)
+                } else {
+                    self?.autoDiscoverEPG(fromPlaylistURL: url)
+                }
             }
             .store(in: &cancellables)
     }
@@ -98,7 +110,8 @@ final class ChannelListViewModel: BaseViewModel {
         DispatchQueue.global(qos: .utility).async { [weak self] in
             do {
                 let content = try String(contentsOf: url, encoding: .utf8)
-                let channels = try M3UParser().parse(content: content)
+                let parser = M3UParser()
+                let channels = try parser.parse(content: content)
                 let playlist = Playlist(
                     name: url.lastPathComponent,
                     sourceUrl: url.lastPathComponent,
@@ -109,10 +122,16 @@ final class ChannelListViewModel: BaseViewModel {
                 for i in tagged.indices { tagged[i].playlistId = playlist.id }
                 try DatabaseManager.shared.insertChannels(tagged)
 
+                let epgUrl = parser.epgUrl
+
                 DispatchQueue.main.async {
-                    self?.isLoading.send(false)
                     self?.loadChannels()
                     self?.loadPlaylists()
+                    if let epgUrlStr = epgUrl, let u = URL(string: epgUrlStr) {
+                        self?.loadEPG(from: u, finishLoading: true)
+                    } else {
+                        self?.isLoading.send(false)
+                    }
                 }
             } catch {
                 DispatchQueue.main.async {
@@ -122,6 +141,144 @@ final class ChannelListViewModel: BaseViewModel {
                 }
             }
         }
+    }
+
+    func loadEPG(from url: URL, finishLoading: Bool = false) {
+        EPGService.shared.loadEPG(from: url)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] completion in
+                if case .failure(let error) = completion {
+                    let msg = "EPG加载失败: \((error as? AppError)?.errorDescription ?? error.localizedDescription)"
+                    Logger.parser.error("\(msg)")
+                    self?.errorMessage.send(msg)
+                }
+                if finishLoading { self?.isLoading.send(false) }
+            } receiveValue: { [weak self] in
+                Logger.parser.info("EPG加载成功")
+                self?.loadChannels()
+                if finishLoading { self?.isLoading.send(false) }
+            }
+            .store(in: &cancellables)
+    }
+
+    // MARK: - EPG Auto-Discovery
+
+    /// When the m3u header doesn't contain `url-tvg`, derive candidate EPG URLs
+    /// from the playlist URL by guessing common paths on the same server.
+    private func autoDiscoverEPG(fromPlaylistURL playlistURL: URL) {
+        let candidates = deriveEPGCandidates(from: playlistURL)
+        guard !candidates.isEmpty else {
+            errorMessage.send("未找到EPG源，请在添加播放源时手动填写EPG地址")
+            isLoading.send(false)
+            return
+        }
+        Logger.parser.info("自动推导EPG地址, 共\(candidates.count)个候选")
+        tryLoadEPGCandidate(candidates)
+    }
+
+    private func tryLoadEPGCandidate(_ candidates: [URL]) {
+        guard let url = candidates.first else {
+            errorMessage.send("未找到EPG源，请在添加播放源时手动填写EPG地址")
+            isLoading.send(false)
+            return
+        }
+        EPGService.shared.loadEPGFast(from: url)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] completion in
+                if case .failure = completion {
+                    // Try next candidate
+                    self?.tryLoadEPGCandidate(Array(candidates.dropFirst()))
+                } else {
+                    self?.isLoading.send(false)
+                }
+            } receiveValue: { [weak self] in
+                Logger.parser.info("EPG自动推导成功: \(url.absoluteString)")
+                self?.loadChannels()
+            }
+            .store(in: &cancellables)
+    }
+
+    /// Generates candidate EPG XMLTV URLs derived from a playlist URL.
+    ///
+    /// Common Chinese IPTV patterns covered:
+    /// - `http://s.com/iptv/playlist.m3u` → `http://s.com/iptv/epg.xml` etc.
+    /// - `http://s.com:8080/get.php?type=m3u` → `http://s.com:8080/get.php?type=xml`
+    /// - `http://s.com/m3u.php?id=x` → `http://s.com/epg.php?id=x`
+    /// - `http://s.com/api/?action=m3u` → `http://s.com/api/?action=epg`
+    private func deriveEPGCandidates(from playlistURL: URL) -> [URL] {
+        guard var components = URLComponents(url: playlistURL, resolvingAgainstBaseURL: false),
+              components.host != nil else { return [] }
+
+        var candidates: [URL] = []
+
+        // 1. Path-based: same directory, common EPG filenames
+        let dirPath = (components.path as NSString).deletingLastPathComponent
+        let commonNames = [
+            "epg.xml", "xmltv.xml", "guide.xml", "e.xml", "epg.php",
+            "xmltv.php", "xml2.php", "epg.txt", "channel.php"
+        ]
+
+        for name in commonNames {
+            var comps = components
+            let path = dirPath + "/" + name
+            comps.path = path.hasPrefix("/") ? path : "/" + path
+            if let url = comps.url { candidates.append(url) }
+        }
+
+        // 2. Extension / filename replacement
+        let lastPath = components.path
+        let replacements: [(String, String)] = [
+            (".m3u", ".xml"), (".m3u8", ".xml"), (".txt", ".xml"), (".php", ".xml"),
+            ("m3u.php", "epg.php"), ("m3u.php", "xmltv.php"), ("m3u.php", "xml2.php"),
+            ("channel.php", "epg.php"), ("live.txt", "epg.xml"),
+        ]
+
+        for (old, new) in replacements {
+            if lastPath.hasSuffix(old) {
+                var comps = components
+                let base = String(lastPath.dropLast(old.count))
+                comps.path = base + new
+                if let url = comps.url { candidates.append(url) }
+            }
+        }
+
+        // 3. Query-param value replacement: type=m3u → type=xml / type=epg etc.
+        if var queryItems = components.queryItems {
+            let valueMappings: [(String, [String])] = [
+                ("type", ["xml", "epg", "xmltv"]),
+                ("action", ["epg", "xmltv", "xml"]),
+                ("output", ["xml", "epg"]),
+                ("format", ["xml", "xmltv"]),
+            ]
+
+            for (i, item) in queryItems.enumerated() {
+                for (paramName, newValues) in valueMappings {
+                    if item.name.lowercased() == paramName,
+                       item.value?.lowercased() == "m3u" || item.value?.lowercased() == "m3u8"
+                        || item.value?.lowercased() == "m3u_plus" {
+                        for newValue in newValues {
+                            var comps = components
+                            var items = queryItems
+                            items[i].value = newValue
+                            comps.queryItems = items
+                            if let url = comps.url { candidates.append(url) }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 4. Subdomain: try epg.<host>
+        if let host = components.host, !host.hasPrefix("epg.") {
+            var comps = components
+            comps.host = "epg." + host
+            comps.path = "/e.xml"
+            if let url = comps.url { candidates.append(url) }
+            comps.path = "/epg.xml"
+            if let url = comps.url { candidates.append(url) }
+        }
+
+        return candidates
     }
 
     func toggleFavorite(channelId: String) {

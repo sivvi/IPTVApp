@@ -2,6 +2,8 @@ import Foundation
 
 final class M3UParser: PlaylistParser {
 
+    private(set) var epgUrl: String?
+
     func parse(content: String) throws -> [Channel] {
         var channels: [Channel] = []
         let normalized = stripBOM(content).replacingOccurrences(of: "\r\n", with: "\n").replacingOccurrences(of: "\r", with: "\n")
@@ -22,8 +24,14 @@ final class M3UParser: PlaylistParser {
                     Logger.parser.warning("连续#EXTINF行缺少URL, 第\(lineNumber)行")
                 }
                 (currentAttrs, currentTitle) = parseExtinfLine(trimmed)
+            } else if trimmed.hasPrefix("#EXTM3U") {
+                epgUrl = parseHeaderAttribute(trimmed, key: "url-tvg")
+                    ?? parseHeaderAttribute(trimmed, key: "x-tvg-url")
             } else if trimmed.hasPrefix("#") {
-                continue
+                // Scan any comment line for EPG URL patterns
+                if epgUrl == nil {
+                    epgUrl = scanForEpgUrl(in: trimmed)
+                }
             } else {
                 // URL行
                 if let attrs = currentAttrs {
@@ -91,6 +99,42 @@ final class M3UParser: PlaylistParser {
         }
         let value = String(raw[valueRange])
         return value.isEmpty ? nil : value
+    }
+
+    /// Extracts an attribute from a `#EXTM3U` header line (e.g. `url-tvg="..."` or `x-tvg-url="..."`).
+    private func parseHeaderAttribute(_ line: String, key: String) -> String? {
+        extractAttribute(line, key: key)
+    }
+
+    /// Scans a comment line for any EPG-related URL. Handles formats like:
+    /// `#EPG:http://...`, `#EXTVLCOPT:...`, `# url-tvg="..."`, bare URLs with epg/xmltv/.xml
+    private func scanForEpgUrl(in line: String) -> String? {
+        // Try key=value attribute format first
+        if let url = extractAttribute(line, key: "url-tvg")
+            ?? extractAttribute(line, key: "x-tvg-url")
+            ?? extractAttribute(line, key: "epg-url")
+            ?? extractAttribute(line, key: "epgurl") {
+            return url
+        }
+
+        // Try bare URL pattern: any http/https URL containing epg/xmltv/guide keywords
+        let urlPattern = #"(https?://[^\s"']+(?:epg|xmltv|guide|xml|tvguide)[^\s"']*\.(?:xml|php|gz|zip))"#
+        guard let regex = try? NSRegularExpression(pattern: urlPattern, options: .caseInsensitive) else { return nil }
+        let range = NSRange(line.startIndex..<line.endIndex, in: line)
+        if let match = regex.firstMatch(in: line, range: range),
+           let urlRange = Range(match.range(at: 1), in: line) {
+            return String(line[urlRange])
+        }
+
+        // Broader: any http URL on a comment line that ends with .xml or .xmltv
+        let xmlUrlPattern = #"(https?://[^\s"']+\.xml(?:tv)?)"#
+        guard let xmlRegex = try? NSRegularExpression(pattern: xmlUrlPattern, options: .caseInsensitive) else { return nil }
+        if let match = xmlRegex.firstMatch(in: line, range: range),
+           let urlRange = Range(match.range(at: 1), in: line) {
+            return String(line[urlRange])
+        }
+
+        return nil
     }
 
     private func buildChannel(attrs: [String: String], title: String?, url: String) -> Channel {
