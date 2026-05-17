@@ -1,6 +1,7 @@
 import UIKit
 import CoreMedia
 import AVFoundation
+import AVKit
 import SnapKit
 import Combine
 
@@ -26,6 +27,71 @@ final class PlayerViewController: UIViewController, UIGestureRecognizerDelegate 
     /// Non-nil when resuming from floating window — renderer view and service already exist.
     private let floatingRenderer: UIView?
     private let floatingService: PlayerServiceProtocol?
+
+    // MARK: - System PiP
+
+    private var pipController: AVPictureInPictureController?
+    private let pipDelegate = PipDelegate()
+
+    /// Retained across dismiss so PiP survives VC deallocation.
+    private static var retainedPipController: AVPictureInPictureController?
+    private static var retainedPipDelegate: PipDelegate?
+    private static var pipRestoreChannel: Channel?
+    private static var pipRestoreService: AVPlayerService?
+
+    private var canUseSystemPiP: Bool {
+        AVPictureInPictureController.isPictureInPictureSupported()
+            && viewModel.activePlayerService is AVPlayerService
+            && !viewModel.isUsingIJK.value
+            && !viewModel.isCasting.value
+    }
+
+    // MARK: - PipDelegate
+
+    private final class PipDelegate: NSObject, AVPictureInPictureControllerDelegate {
+
+        func pictureInPictureControllerWillStartPictureInPicture(_ controller: AVPictureInPictureController) {}
+
+        func pictureInPictureControllerDidStartPictureInPicture(_ controller: AVPictureInPictureController) {}
+
+        func pictureInPictureControllerDidStopPictureInPicture(_ controller: AVPictureInPictureController) {
+            // PiP closed by user (not restore) — tear down context.
+            PlayerViewController.pipRestoreChannel = nil
+            PlayerViewController.pipRestoreService = nil
+            PlayerViewController.retainedPipDelegate = nil
+            PlayerViewController.retainedPipController = nil
+        }
+
+        func pictureInPictureController(
+            _ controller: AVPictureInPictureController,
+            restoreUserInterfaceForPictureInPictureStopWithCompletionHandler completionHandler: @escaping (Bool) -> Void
+        ) {
+            guard let channel = PlayerViewController.pipRestoreChannel,
+                  let service = PlayerViewController.pipRestoreService else {
+                completionHandler(false)
+                return
+            }
+            let vc = PlayerViewController(channel: channel, renderer: nil, service: service)
+            topViewController()?.present(vc, animated: true)
+            PlayerViewController.pipRestoreChannel = nil
+            PlayerViewController.pipRestoreService = nil
+            PlayerViewController.retainedPipDelegate = nil
+            PlayerViewController.retainedPipController = nil
+            completionHandler(true)
+        }
+
+        private func topViewController(_ base: UIViewController? = nil) -> UIViewController? {
+            let root = base ?? UIApplication.shared.connectedScenes
+                .compactMap { ($0 as? UIWindowScene)?.windows.first(where: { $0.isKeyWindow }) }
+                .first?.rootViewController
+            if let nav = root as? UINavigationController { return topViewController(nav.visibleViewController) }
+            if let tab = root as? UITabBarController, let selected = tab.selectedViewController { return topViewController(selected) }
+            if let presented = root?.presentedViewController { return topViewController(presented) }
+            return root
+        }
+    }
+
+    // MARK: - End PipDelegate
 
     init(channel: Channel) {
         self.viewModel = PlayerViewModel(channel: channel)
@@ -58,6 +124,8 @@ final class PlayerViewController: UIViewController, UIGestureRecognizerDelegate 
         setupPlayerViewCallbacks()
         if let renderer = floatingRenderer {
             playerView.attachRenderer(renderer)
+        } else if floatingService != nil {
+            // Restoring from system PiP — player already has content loaded.
         } else {
             viewModel.startPlayback()
         }
@@ -86,19 +154,19 @@ final class PlayerViewController: UIViewController, UIGestureRecognizerDelegate 
 
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
-        // Safety net: force portrait before this view leaves the window.
-        // If the user double-taps close or a system gesture dismisses us
-        // while in landscape, the app would be stuck in landscape forever.
         if viewModel.isFullscreen.value {
             viewModel.toggleFullscreen()
+            // infoPanel may have been removed from the tree during enterFullscreen.
+            // Re-insert before setupPortraitConstraints remakes constraints that
+            // reference it, or Auto Layout will crash on orphaned cross-view constraints.
+            if infoPanel.superview == nil {
+                view.insertSubview(infoPanel, aboveSubview: controlBar)
+            }
             setupPortraitConstraints()
         }
+        UIDevice.current.setValue(UIInterfaceOrientation.portrait.rawValue, forKey: "orientation")
         if #available(iOS 16.0, *) {
             setNeedsUpdateOfSupportedInterfaceOrientations()
-            view.window?.windowScene?.requestGeometryUpdate(
-                .iOS(interfaceOrientations: .portrait))
-        } else {
-            UIDevice.current.setValue(UIInterfaceOrientation.portrait.rawValue, forKey: "orientation")
         }
     }
 
@@ -131,15 +199,17 @@ final class PlayerViewController: UIViewController, UIGestureRecognizerDelegate 
             playerView.attachAVPlayer(avService.player)
         }
 
+        configurePiPIfAvailable()
+
         closeButton.setImage(UIImage(systemName: "xmark"), for: .normal)
-        closeButton.tintColor = .white
+        closeButton.tintColor = UIColor(hex: "#FF6B35")
         closeButton.backgroundColor = UIColor.black.withAlphaComponent(0.5)
         closeButton.layer.cornerRadius = 16
         closeButton.addTarget(self, action: #selector(closeTapped), for: .touchUpInside)
         view.addSubview(closeButton)
 
         pipButton.setImage(UIImage(systemName: "pip.enter"), for: .normal)
-        pipButton.tintColor = .white
+        pipButton.tintColor = UIColor(hex: "#FF6B35")
         pipButton.backgroundColor = UIColor.black.withAlphaComponent(0.5)
         pipButton.layer.cornerRadius = 16
         pipButton.addTarget(self, action: #selector(pipTapped), for: .touchUpInside)
@@ -293,11 +363,8 @@ final class PlayerViewController: UIViewController, UIGestureRecognizerDelegate 
             make.width.height.equalTo(32)
         }
 
-        infoPanel.snp.remakeConstraints { make in
-            make.top.equalTo(view.snp.bottom)
-            make.leading.trailing.equalToSuperview()
-            make.height.equalTo(0)
-        }
+        // infoPanel is hidden via alpha=0 in isFullscreen binding; skip constraint
+        // changes to avoid Auto Layout conflict with its internal tab bar + scroll view.
 
         controlBar.snp.remakeConstraints { make in
             make.leading.trailing.bottom.equalToSuperview()
@@ -410,6 +477,7 @@ final class PlayerViewController: UIViewController, UIGestureRecognizerDelegate 
                 guard let self else { return }
                 if !usingIJK {
                     self.playerView.attachAVPlayer(self.viewModel.avPlayerService.player)
+                    self.configurePiPIfAvailable()
                 }
             }
             .store(in: &cancellables)
@@ -492,6 +560,16 @@ final class PlayerViewController: UIViewController, UIGestureRecognizerDelegate 
         }
     }
 
+    private func configurePiPIfAvailable() {
+        guard AVPictureInPictureController.isPictureInPictureSupported(),
+              pipController == nil else { return }
+
+        guard let controller = AVPictureInPictureController(playerLayer: playerView.playerLayer) else { return }
+        controller.delegate = pipDelegate
+        controller.canStartPictureInPictureAutomaticallyFromInline = true
+        pipController = controller
+    }
+
     private func handlePlayerState(_ state: PlayerState) {
         switch state {
         case .loading:
@@ -544,11 +622,30 @@ final class PlayerViewController: UIViewController, UIGestureRecognizerDelegate 
     @objc private func pipTapped() {
         guard !viewModel.isCasting.value else { return }
 
+        // Exit fullscreen before entering PiP so the restore lands in portrait.
+        if viewModel.isFullscreen.value {
+            viewModel.toggleFullscreen()
+            if infoPanel.superview == nil {
+                view.insertSubview(infoPanel, aboveSubview: controlBar)
+            }
+            setupPortraitConstraints()
+        }
+
+        if canUseSystemPiP, let pipController {
+            Self.pipRestoreChannel = viewModel.channel
+            Self.pipRestoreService = viewModel.activePlayerService as? AVPlayerService
+            Self.retainedPipDelegate = pipDelegate
+            Self.retainedPipController = pipController
+            pipController.startPictureInPicture()
+            dismiss(animated: true)
+            return
+        }
+
+        // Fallback: custom floating window (IJK player or unsupported device)
         guard let rendererView = playerView.detachRenderer() else { return }
 
-        let service = viewModel.activePlayerService
         FloatingPlayerManager.shared.enterFloatingMode(
-            playerService: service,
+            playerService: viewModel.activePlayerService,
             videoView: rendererView,
             channel: viewModel.channel
         )
@@ -561,11 +658,39 @@ final class PlayerViewController: UIViewController, UIGestureRecognizerDelegate 
         guard viewModel.playerState.value.isPlaying else { return }
         guard !FloatingPlayerManager.shared.isActive else { return }
 
+        if canUseSystemPiP, let pipController {
+            // Use system PiP; keep controller alive after dismiss.
+            Self.pipRestoreChannel = viewModel.channel
+            Self.pipRestoreService = viewModel.activePlayerService as? AVPlayerService
+            Self.retainedPipDelegate = pipDelegate
+            Self.retainedPipController = pipController
+
+            if viewModel.isFullscreen.value {
+                viewModel.toggleFullscreen()
+                if infoPanel.superview == nil {
+                    view.insertSubview(infoPanel, aboveSubview: controlBar)
+                }
+                setupPortraitConstraints()
+            }
+
+            pipController.startPictureInPicture()
+            dismiss(animated: false)
+            return
+        }
+
+        // Fallback: custom floating window for IJK or unsupported devices.
         guard let rendererView = playerView.detachRenderer() else { return }
 
-        let service = viewModel.activePlayerService
+        if viewModel.isFullscreen.value {
+            viewModel.toggleFullscreen()
+            if infoPanel.superview == nil {
+                view.insertSubview(infoPanel, aboveSubview: controlBar)
+            }
+            setupPortraitConstraints()
+        }
+
         FloatingPlayerManager.shared.enterFloatingMode(
-            playerService: service,
+            playerService: viewModel.activePlayerService,
             videoView: rendererView,
             channel: viewModel.channel
         )
@@ -597,19 +722,20 @@ final class PlayerViewController: UIViewController, UIGestureRecognizerDelegate 
     }
 
     private func enterFullscreen() {
-        // 1. Switch constraints to fill screen
-        setupFullscreenConstraints()
-        view.layoutIfNeeded()
+        // infoPanel contains a UIScrollView (pageScrollView) + UIStackView (pageStack)
+        // whose constraint chain can deadlock Auto Layout when external constraints
+        // (e.g. height=0) conflict with internal ones. Remove it from the tree so it
+        // does not participate in layout during the fullscreen transition.
+        infoPanel.removeFromSuperview()
 
-        // 2. Force landscape
+        setupFullscreenConstraints()
+
+        UIDevice.current.setValue(UIInterfaceOrientation.landscapeRight.rawValue, forKey: "orientation")
         if #available(iOS 16.0, *) {
             setNeedsUpdateOfSupportedInterfaceOrientations()
-            guard let scene = view.window?.windowScene else { return }
-            scene.requestGeometryUpdate(.iOS(interfaceOrientations: .landscape))
-        } else {
-            UIDevice.current.setValue(UIInterfaceOrientation.landscapeRight.rawValue, forKey: "orientation")
         }
 
+        // Rotation will trigger layoutSubviews — no explicit layoutIfNeeded needed.
         UIView.animate(withDuration: 0.3) {
             self.setNeedsStatusBarAppearanceUpdate()
             self.setNeedsUpdateOfHomeIndicatorAutoHidden()
@@ -617,22 +743,23 @@ final class PlayerViewController: UIViewController, UIGestureRecognizerDelegate 
     }
 
     private func exitFullscreen() {
+        // Re-insert infoPanel removed in enterFullscreen. Constraints are set up
+        // before the rotation triggers layout, avoiding a stale-layout gap.
+        if infoPanel.superview == nil {
+            view.insertSubview(infoPanel, aboveSubview: controlBar)
+        }
+
         setupPortraitConstraints()
-        // Reset fill mode when exiting fullscreen
         if playerView.isFillMode {
             _ = playerView.toggleFill()
         }
 
+        UIDevice.current.setValue(UIInterfaceOrientation.portrait.rawValue, forKey: "orientation")
         if #available(iOS 16.0, *) {
             setNeedsUpdateOfSupportedInterfaceOrientations()
-            guard let scene = view.window?.windowScene else { return }
-            scene.requestGeometryUpdate(.iOS(interfaceOrientations: .portrait))
-        } else {
-            UIDevice.current.setValue(UIInterfaceOrientation.portrait.rawValue, forKey: "orientation")
         }
 
         UIView.animate(withDuration: 0.3) {
-            self.view.layoutIfNeeded()
             self.setNeedsStatusBarAppearanceUpdate()
             self.setNeedsUpdateOfHomeIndicatorAutoHidden()
         }

@@ -47,11 +47,11 @@ final class PlayerControlBar: UIView {
 
         // Playback row
         playPauseButton.setImage(UIImage(systemName: "play.fill"), for: .normal)
-        playPauseButton.tintColor = .white
+        playPauseButton.tintColor = UIColor(hex: "#FF6B35")
         playPauseButton.addTarget(self, action: #selector(playPauseAction), for: .touchUpInside)
 
         castingButton.setImage(UIImage(systemName: "airplayvideo"), for: .normal)
-        castingButton.tintColor = .white
+        castingButton.tintColor = UIColor(hex: "#FF6B35")
         castingButton.addTarget(self, action: #selector(castingAction), for: .touchUpInside)
 
         currentTimeLabel.text = "00:00"
@@ -70,17 +70,17 @@ final class PlayerControlBar: UIView {
         durationLabel.textColor = .white
         durationLabel.font = .monospacedDigitSystemFont(ofSize: 12, weight: .medium)
 
-        fullscreenButton.setImage(makePhoneOverlapIcon(), for: .normal)
-        fullscreenButton.tintColor = .white
+        fullscreenButton.setImage(makeFullscreenIcon(expand: true), for: .normal)
+        fullscreenButton.tintColor = UIColor(hex: "#FF6B35")
         fullscreenButton.addTarget(self, action: #selector(fullscreenAction), for: .touchUpInside)
 
         fillButton.setImage(UIImage(systemName: "rectangle.arrowtriangle.2.inward"), for: .normal)
-        fillButton.tintColor = .white
+        fillButton.tintColor = UIColor(hex: "#FF6B35")
         fillButton.isHidden = true
         fillButton.addTarget(self, action: #selector(fillAction), for: .touchUpInside)
 
         // Volume in-row
-        volumeIcon.tintColor = .white
+        volumeIcon.tintColor = UIColor(hex: "#FF6B35")
         volumeIcon.contentMode = .scaleAspectFit
         updateVolumeIcon()
         addSubview(volumeIcon)
@@ -198,35 +198,67 @@ final class PlayerControlBar: UIView {
     }
 
     func updateFullscreenButton(isFullscreen: Bool) {
-        fullscreenButton.setImage(makePhoneOverlapIcon(), for: .normal)
-        fullscreenButton.tintColor = isFullscreen ? UIColor(hex: "#FF6B35") : .white
+        fullscreenButton.setImage(makeFullscreenIcon(expand: !isFullscreen), for: .normal)
+        fullscreenButton.tintColor = UIColor(hex: "#FF6B35")
     }
 
-    private func makePhoneOverlapIcon() -> UIImage {
+    /// Draws a filled rectangle with two arrows above/below.
+    /// - Parameter expand: true = arrows point outward (enter fullscreen),
+    ///   false = arrows point inward (exit fullscreen).
+    private func makeFullscreenIcon(expand: Bool) -> UIImage {
         let size: CGFloat = 28
         let renderer = UIGraphicsImageRenderer(size: CGSize(width: size, height: size))
+        let tint = UIColor(hex: "#FF6B35")
         return renderer.image { ctx in
-            let symbolSize: CGFloat = 18
-            let config = UIImage.SymbolConfiguration(pointSize: symbolSize, weight: .regular)
-            let cgCtx = ctx.cgContext
+            // Center rectangle
+            let rw: CGFloat = 8
+            let rh: CGFloat = 14
+            let rx: CGFloat = (size - rw) / 2
+            let ry: CGFloat = (size - rh) / 2
+            let rectPath = UIBezierPath(rect: CGRect(x: rx, y: ry, width: rw, height: rh))
+            tint.setFill()
+            rectPath.fill()
 
-            // Portrait rectangle (left side)
-            if let portrait = UIImage(systemName: "rectangle.portrait", withConfiguration: config) {
-                let x: CGFloat = 0
-                let y = (size - portrait.size.height) / 2
-                portrait.draw(at: CGPoint(x: x, y: y))
-            }
+            let cx: CGFloat = size / 2
+            let hw: CGFloat = 3  // half arrow width
+            let ah: CGFloat = 4  // arrow height
 
-            // Landscape rectangle (rotated portrait, right side overlapping)
-            if let landscape = UIImage(systemName: "rectangle.portrait", withConfiguration: config) {
-                cgCtx.saveGState()
-                let cx: CGFloat = size - symbolSize / 2 - 1
-                let cy: CGFloat = size / 2
-                cgCtx.translateBy(x: cx, y: cy)
-                cgCtx.rotate(by: .pi / 2)
-                landscape.draw(at: CGPoint(x: -landscape.size.width / 2, y: -landscape.size.height / 2))
-                cgCtx.restoreGState()
+            let topOuter: CGFloat = 1
+            let topInner: CGFloat = topOuter + ah
+            let botOuter: CGFloat = size - 1
+            let botInner: CGFloat = botOuter - ah
+
+            // Top arrow
+            let topPath = UIBezierPath()
+            if expand {
+                // ^ points up (away from rect)
+                topPath.move(to: CGPoint(x: cx, y: topOuter))
+                topPath.addLine(to: CGPoint(x: cx - hw, y: topInner))
+                topPath.addLine(to: CGPoint(x: cx + hw, y: topInner))
+            } else {
+                // v points down (toward rect)
+                topPath.move(to: CGPoint(x: cx, y: topInner))
+                topPath.addLine(to: CGPoint(x: cx - hw, y: topOuter))
+                topPath.addLine(to: CGPoint(x: cx + hw, y: topOuter))
             }
+            topPath.close()
+            topPath.fill()
+
+            // Bottom arrow
+            let botPath = UIBezierPath()
+            if expand {
+                // v points down (away from rect)
+                botPath.move(to: CGPoint(x: cx, y: botOuter))
+                botPath.addLine(to: CGPoint(x: cx - hw, y: botInner))
+                botPath.addLine(to: CGPoint(x: cx + hw, y: botInner))
+            } else {
+                // ^ points up (toward rect)
+                botPath.move(to: CGPoint(x: cx, y: botInner))
+                botPath.addLine(to: CGPoint(x: cx - hw, y: botOuter))
+                botPath.addLine(to: CGPoint(x: cx + hw, y: botOuter))
+            }
+            botPath.close()
+            botPath.fill()
         }.withRenderingMode(.alwaysTemplate)
     }
 
@@ -279,7 +311,7 @@ final class PlayerControlBar: UIView {
     func updateCastingButton(isCasting: Bool, deviceName: String?) {
         let symbolName = isCasting ? "airplayvideo" : "airplayvideo"
         castingButton.setImage(UIImage(systemName: symbolName), for: .normal)
-        castingButton.tintColor = isCasting ? UIColor(hex: "#4ECDC4") : .white
+        castingButton.tintColor = isCasting ? UIColor(hex: "#4ECDC4") : UIColor(hex: "#FF6B35")
     }
 
     private func makeThumb(size: CGFloat) -> UIImage {

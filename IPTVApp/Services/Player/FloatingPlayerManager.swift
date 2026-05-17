@@ -30,12 +30,18 @@ final class FloatingPlayerManager {
         guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene else { return }
 
         let window = UIWindow(windowScene: scene)
-        window.windowLevel = .alert + 1
+        window.windowLevel = .alert + 100
         window.backgroundColor = .clear
 
-        let size = CGSize(width: 260, height: 146)
-        let originX = scene.screen.bounds.width - size.width - 12
-        let originY = scene.screen.bounds.height - scene.screen.bounds.height / 3
+        let size = CGSize(width: 300, height: 170)
+        // Screen bounds may be landscape when invoked from fullscreen; always use
+        // portrait orientation dimensions so the window stays on-screen after the
+        // dismiss triggers the rotation back to portrait.
+        let bounds = scene.screen.bounds
+        let pw = min(bounds.width, bounds.height)
+        let ph = max(bounds.width, bounds.height)
+        let originX = pw - size.width - 12
+        let originY = ph - ph / 3
         let floatView = FloatingPlayerView(frame: CGRect(origin: CGPoint(x: originX, y: originY), size: size))
         floatView.attachVideo(videoView)
         floatView.isPlaying = playerService.state.value.isPlaying

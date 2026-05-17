@@ -47,7 +47,7 @@ final class FloatingPlayerView: UIView {
         videoContainer.snp.makeConstraints { $0.edges.equalToSuperview() }
 
         closeButton.setImage(UIImage(systemName: "xmark"), for: .normal)
-        closeButton.tintColor = .white
+        closeButton.tintColor = UIColor(hex: "#FF6B35")
         closeButton.backgroundColor = UIColor.black.withAlphaComponent(0.5)
         closeButton.layer.cornerRadius = 12
         closeButton.addTarget(self, action: #selector(closeTapped), for: .touchUpInside)
@@ -57,19 +57,19 @@ final class FloatingPlayerView: UIView {
             make.width.height.equalTo(24)
         }
 
-        expandButton.setImage(UIImage(systemName: "arrow.up.left.and.arrow.down.right"), for: .normal)
-        expandButton.tintColor = .white
+        expandButton.setImage(UIImage(systemName: "pip.enter"), for: .normal)
+        expandButton.tintColor = UIColor(hex: "#FF6B35")
         expandButton.backgroundColor = UIColor.black.withAlphaComponent(0.5)
-        expandButton.layer.cornerRadius = 12
+        expandButton.layer.cornerRadius = 16
         expandButton.addTarget(self, action: #selector(expandTapped), for: .touchUpInside)
         addSubview(expandButton)
         expandButton.snp.makeConstraints { make in
-            make.top.trailing.equalToSuperview().offset(6)
-            make.width.height.equalTo(24)
+            make.top.trailing.equalToSuperview().inset(6)
+            make.width.height.equalTo(32)
         }
 
         playPauseButton.setImage(UIImage(systemName: "pause.fill"), for: .normal)
-        playPauseButton.tintColor = .white
+        playPauseButton.tintColor = UIColor(hex: "#FF6B35")
         playPauseButton.backgroundColor = UIColor.black.withAlphaComponent(0.5)
         playPauseButton.layer.cornerRadius = 18
         playPauseButton.addTarget(self, action: #selector(playPauseTappedAction), for: .touchUpInside)
